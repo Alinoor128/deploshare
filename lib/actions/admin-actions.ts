@@ -121,12 +121,16 @@ export async function getAdminStatsAction(): Promise<
   }
 }
 
+export interface AdminUserItem extends Profile {
+  email?: string;
+}
+
 /**
  * Server Action: Get Users for Admin User Management.
  */
 export async function getAdminUsersAction(
   searchQuery?: string
-): Promise<ApiResponse<Profile[]>> {
+): Promise<ApiResponse<AdminUserItem[]>> {
   const { isAdmin } = await verifyAdminAccess();
   if (!isAdmin) {
     return { success: false, error: 'Unauthorized.', data: [] };
@@ -134,6 +138,11 @@ export async function getAdminUsersAction(
 
   try {
     const adminSupabase = createAdminClient();
+    
+    // Fetch auth users to map emails
+    const { data: authData } = await adminSupabase.auth.admin.listUsers({ perPage: 1000 });
+    const authUsersMap = new Map((authData?.users || []).map((u) => [u.id, u.email]));
+
     let query = adminSupabase.from('profiles').select('*').order('created_at', { ascending: false });
 
     if (searchQuery && searchQuery.trim().length > 0) {
@@ -143,7 +152,12 @@ export async function getAdminUsersAction(
     const { data, error } = await query;
     if (error) return { success: false, error: error.message, data: [] };
 
-    return { success: true, data: data || [] };
+    const merged: AdminUserItem[] = (data || []).map((p) => ({
+      ...p,
+      email: authUsersMap.get(p.id) || 'No Email',
+    }));
+
+    return { success: true, data: merged };
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : 'Failed to fetch users', data: [] };
   }

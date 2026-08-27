@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
-import { Profile, Share, Report, CleanupLog, PurgeResult } from '@/types/database';
+import { Share, Report, CleanupLog, PurgeResult } from '@/types/database';
 import { formatBytes } from '@/lib/security/sanitizer';
 import {
   getAdminStatsAction,
   getAdminUsersAction,
+  AdminUserItem,
   toggleUserSuspensionAction,
   getAdminSharesAction,
   adminRevokeShareAction,
@@ -56,7 +57,7 @@ export function AdminDashboard() {
   const [now] = useState(() => Date.now());
   const [activeTab, setActiveTab] = useState<'metrics' | 'users' | 'shares' | 'reports' | 'maintenance'>('metrics');
   const [stats, setStats] = useState<AdminStats | null>(null);
-  const [users, setUsers] = useState<Profile[]>([]);
+  const [users, setUsers] = useState<AdminUserItem[]>([]);
   const [shares, setShares] = useState<Share[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [cleanupLogs, setCleanupLogs] = useState<CleanupLog[]>([]);
@@ -65,7 +66,7 @@ export function AdminDashboard() {
     pendingEstimatedBytes: 0,
   });
 
-  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [purging, setPurging] = useState(false);
   const [purgeSuccess, setPurgeSuccess] = useState<PurgeResult | null>(null);
   const [purgeError, setPurgeError] = useState<string | null>(null);
@@ -74,7 +75,8 @@ export function AdminDashboard() {
   const [userSearch, setUserSearch] = useState('');
   const [shareSearch, setShareSearch] = useState('');
 
-  const loadData = async () => {
+  const loadData = useCallback(async (isManual = false) => {
+    if (isManual) setIsRefreshing(true);
     try {
       const [statsRes, usersRes, sharesRes, reportsRes, pendingRes, logsRes] = await Promise.all([
         getAdminStatsAction(),
@@ -94,61 +96,52 @@ export function AdminDashboard() {
     } catch (err) {
       console.error('Failed to load admin data:', err);
     } finally {
-      setLoading(false);
+      if (isManual) setIsRefreshing(false);
     }
-  };
-
-  useEffect(() => {
-    let active = true;
-    async function init() {
-      try {
-        const [statsRes, usersRes, sharesRes, reportsRes, pendingRes, logsRes] = await Promise.all([
-          getAdminStatsAction(),
-          getAdminUsersAction(),
-          getAdminSharesAction(),
-          getAdminReportsAction(),
-          getPendingPurgeStatsAction(),
-          getMaintenanceLogsAction(),
-        ]);
-
-        if (!active) return;
-        if (statsRes.success && statsRes.data) setStats(statsRes.data);
-        if (usersRes.success) setUsers(usersRes.data || []);
-        if (sharesRes.success) setShares(sharesRes.data || []);
-        if (reportsRes.success) setReports(reportsRes.data || []);
-        if (pendingRes.success && pendingRes.data) setPendingPurge(pendingRes.data);
-        if (logsRes.success && logsRes.data) setCleanupLogs(logsRes.data);
-      } catch (err) {
-        console.error('Failed to load admin data:', err);
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    init();
-    return () => {
-      active = false;
-    };
   }, []);
+
+  // Initial load and Real-time background sync (every 4 seconds)
+  useEffect(() => {
+    let mounted = true;
+
+    async function initialFetch() {
+      if (!mounted) return;
+      await loadData(false);
+    }
+
+    initialFetch();
+
+    const interval = setInterval(() => {
+      if (mounted) {
+        loadData(false);
+      }
+    }, 4000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [loadData]);
 
   const handleToggleUserSuspension = async (userId: string, currentStatus: string) => {
     const isSuspended = currentStatus === 'suspended';
     await toggleUserSuspensionAction(userId, !isSuspended);
-    await loadData();
+    await loadData(false);
   };
 
   const handleAdminRevoke = async (shareId: string) => {
     await adminRevokeShareAction(shareId);
-    await loadData();
+    await loadData(false);
   };
 
   const handleAdminDelete = async (shareId: string) => {
     await adminDeleteShareAction(shareId);
-    await loadData();
+    await loadData(false);
   };
 
   const handleResolveReport = async (reportId: string, status: 'resolved' | 'rejected', deleteContent = false) => {
     await resolveReportAction(reportId, status, deleteContent);
-    await loadData();
+    await loadData(false);
   };
 
   const handleRunStoragePurge = async () => {
@@ -160,7 +153,7 @@ export function AdminDashboard() {
       const res = await runStorageCleanupAction();
       if (res.success && res.data) {
         setPurgeSuccess(res.data);
-        await loadData();
+        await loadData(false);
       } else {
         setPurgeError(res.error || 'Failed to execute storage purge.');
       }
@@ -181,6 +174,10 @@ export function AdminDashboard() {
               <ShieldCheck className="w-3.5 h-3.5" />
               Administrative Portal
             </Badge>
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Real-Time Sync Active</span>
+            </div>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
             Platform Administration & Maintenance
@@ -190,15 +187,17 @@ export function AdminDashboard() {
           </p>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={loadData}
-          isLoading={loading}
-          leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
-        >
-          Refresh Data
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => loadData(true)}
+            isLoading={isRefreshing}
+            leftIcon={<RotateCcw className="w-3.5 h-3.5 text-blue-600" />}
+          >
+            {isRefreshing ? 'Refreshing...' : 'Refresh Now'}
+          </Button>
+        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -285,9 +284,9 @@ export function AdminDashboard() {
       {/* TAB 2: USER MANAGEMENT */}
       {activeTab === 'users' && (
         <div className="space-y-4">
-          <div className="w-full sm:w-72">
+          <div className="w-full sm:w-80">
             <Input
-              placeholder="Search users..."
+              placeholder="Search by name or email..."
               value={userSearch}
               onChange={(e) => setUserSearch(e.target.value)}
               leftIcon={<Search className="w-4 h-4" />}
@@ -299,7 +298,7 @@ export function AdminDashboard() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider font-semibold text-slate-600">
                   <tr>
-                    <th className="px-4 py-3.5">Name</th>
+                    <th className="px-4 py-3.5">User / Email</th>
                     <th className="px-4 py-3.5">Role</th>
                     <th className="px-4 py-3.5">Status</th>
                     <th className="px-4 py-3.5">Joined</th>
@@ -308,11 +307,23 @@ export function AdminDashboard() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {users
-                    .filter((u) => !userSearch || u.full_name?.toLowerCase().includes(userSearch.toLowerCase()))
+                    .filter((u) => {
+                      if (!userSearch) return true;
+                      const q = userSearch.toLowerCase();
+                      return (
+                        u.full_name?.toLowerCase().includes(q) ||
+                        u.email?.toLowerCase().includes(q)
+                      );
+                    })
                     .map((u) => (
                       <tr key={u.id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-4 py-3 font-medium text-slate-900">
-                          {u.full_name || 'Anonymous User'}
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-slate-900">
+                            {u.full_name || 'Anonymous User'}
+                          </div>
+                          <div className="text-xs font-mono text-slate-500">
+                            {u.email}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant={u.role === 'admin' ? 'warning' : 'default'} size="sm">
@@ -349,7 +360,7 @@ export function AdminDashboard() {
       {activeTab === 'shares' && (
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-72">
+            <div className="w-80">
               <Input
                 placeholder="Search by code or title..."
                 value={shareSearch}
@@ -571,9 +582,9 @@ export function AdminDashboard() {
                 <Activity className="w-5 h-5" />
                 <h3 className="text-base font-bold text-slate-900">Automated Schedule</h3>
               </div>
-              <p className="text-2xl font-black text-emerald-600">Hourly Cron</p>
+              <p className="text-2xl font-black text-emerald-600">Daily Cron</p>
               <p className="text-xs text-slate-500">
-                Configured via <code className="text-blue-600 font-mono">vercel.json</code> & GitHub Actions.
+                Configured via <code className="text-blue-600 font-mono">vercel.json</code>.
               </p>
             </Card>
           </div>
@@ -613,7 +624,7 @@ export function AdminDashboard() {
             </p>
 
             <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs text-blue-300 overflow-x-auto select-all">
-              curl -X POST https://deploshare.com/api/cron/cleanup -H &quot;Authorization: Bearer YOUR_CRON_SECRET&quot;
+              curl -X POST https://deploshare-livesecure.vercel.app/api/cron/cleanup -H &quot;Authorization: Bearer YOUR_CRON_SECRET&quot;
             </div>
           </Card>
 
