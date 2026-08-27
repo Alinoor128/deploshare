@@ -60,6 +60,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://deploshare.com',
   },
+  verification: {
+    google: 'googlec7d26ea88dfa07cb',
+  },
   robots: {
     index: true,
     follow: true,
