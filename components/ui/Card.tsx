@@ -22,21 +22,23 @@ export function Card({
     <div
       className={twMerge(
         clsx(
-          'relative rounded-2xl p-6 text-slate-900 transition-all duration-300',
+          'relative rounded-3xl p-6 sm:p-7 text-slate-900 transition-all duration-300 ease-out',
           glass
-            ? 'bg-white/90 border border-slate-200/90 backdrop-blur-xl shadow-sm'
-            : 'bg-white border border-slate-200 shadow-xs',
-          glow && 'ring-1 ring-blue-500/30 shadow-xl shadow-blue-500/10 border-blue-200',
+            ? 'bg-gradient-to-b from-white via-white to-slate-50/70 border border-slate-200/90 backdrop-blur-xl shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04),0_2px_8px_-2px_rgba(0,0,0,0.02)]'
+            : 'bg-white border border-slate-200/90 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.04)]',
+          glow && 'ring-2 ring-blue-500/20 shadow-[0_20px_50px_-10px_rgba(37,99,235,0.18)] border-blue-300',
           hoverEffect &&
-            'hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-0.5',
+            'hover:border-blue-400/80 hover:shadow-[0_24px_50px_-12px_rgba(37,99,235,0.14),0_0_0_1px_rgba(37,99,235,0.15)] hover:-translate-y-1.5',
           floating && 'animate-float',
           className
         )
       )}
       {...props}
     >
+      {/* Subtle Top Edge Gradient Reflection */}
+      <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent pointer-events-none" />
       {glow && (
-        <div className="absolute -top-px left-1/4 right-1/4 h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent pointer-events-none" />
+        <div className="absolute -top-px left-1/4 right-1/4 h-0.5 bg-gradient-to-r from-transparent via-blue-600 to-transparent pointer-events-none" />
       )}
       {children}
     </div>
