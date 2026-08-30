@@ -141,3 +141,14 @@ export interface ApiResponse<T = unknown> {
   code?: string;
   requiresPassword?: boolean;
 }
+
+export interface Review {
+  id: string;
+  user_id?: string | null;
+  name: string;
+  role: string;
+  rating: number;
+  comment: string;
+  is_verified: boolean;
+  created_at: string;
+}

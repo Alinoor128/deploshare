@@ -90,6 +90,12 @@ export function Navbar() {
             Security & Privacy
           </Link>
           <Link
+            href="/#reviews"
+            className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-all duration-200 hover:scale-105"
+          >
+            Reviews
+          </Link>
+          <Link
             href="/#pricing"
             className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-all duration-200 hover:scale-105"
           >

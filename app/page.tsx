@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { DeploShareLogo } from '@/components/ui/DeploShareLogo';
 import { BRAND_CONFIG } from '@/lib/config/brand';
+import { ReviewsSection } from '@/components/reviews/ReviewsSection';
 import {
   KeyRound,
   UploadCloud,
@@ -417,7 +418,12 @@ export default function LandingPage() {
       </section>
 
       {/* =====================================================================
-          5. PRICING SECTION
+          5. REAL-TIME CUSTOMER REVIEWS SECTION
+      ===================================================================== */}
+      <ReviewsSection />
+
+      {/* =====================================================================
+          6. PRICING SECTION
       ===================================================================== */}
       <section id="pricing" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12">
         <div className="text-center space-y-3 max-w-2xl mx-auto">
