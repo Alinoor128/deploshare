@@ -16,6 +16,10 @@ async function verifyAdminAccess(): Promise<{ isAdmin: boolean; userId?: string 
 
     if (!user) return { isAdmin: false };
 
+    const isDesignatedAdminEmail =
+      user.email?.toLowerCase() === 'alinoordot1@gmail.com' ||
+      (process.env.ADMIN_EMAIL && user.email?.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase());
+
     const adminSupabase = createAdminClient();
     const { data: profile } = await adminSupabase
       .from('profiles')
@@ -24,6 +28,19 @@ async function verifyAdminAccess(): Promise<{ isAdmin: boolean; userId?: string 
       .single();
 
     if (profile?.role === 'admin' && profile?.status === 'active') {
+      return { isAdmin: true, userId: user.id };
+    }
+
+    if (isDesignatedAdminEmail) {
+      await adminSupabase.from('profiles').upsert(
+        {
+          id: user.id,
+          role: 'admin',
+          status: 'active',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      );
       return { isAdmin: true, userId: user.id };
     }
 

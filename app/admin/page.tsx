@@ -28,7 +28,25 @@ export default async function AdminPage() {
     .eq('id', user.id)
     .single();
 
-  const isAdmin = profile?.role === 'admin' && profile?.status === 'active';
+  const isDesignatedAdminEmail =
+    user.email?.toLowerCase() === 'alinoordot1@gmail.com' ||
+    (process.env.ADMIN_EMAIL && user.email?.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase());
+
+  let isAdmin = profile?.role === 'admin' && profile?.status === 'active';
+
+  // Auto-promote designated admin email if not already set
+  if (isDesignatedAdminEmail && !isAdmin) {
+    await adminSupabase.from('profiles').upsert(
+      {
+        id: user.id,
+        role: 'admin',
+        status: 'active',
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' }
+    );
+    isAdmin = true;
+  }
 
   if (!isAdmin) {
     return (
