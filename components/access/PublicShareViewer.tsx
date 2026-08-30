@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -10,8 +9,10 @@ import { Input } from '@/components/ui/Input';
 import { ReportModal } from '@/components/access/ReportModal';
 import { BurnShredderModal } from '@/components/access/BurnShredderModal';
 import { ConfidentialShield } from '@/components/security/ConfidentialShield';
+import { AdvancedFilePreview } from '@/components/preview/AdvancedFilePreview';
+import { CountdownClock } from '@/components/preview/CountdownClock';
 import { SharePublicView } from '@/types/database';
-import { formatBytes, calculateTimeRemaining } from '@/lib/security/sanitizer';
+import { formatBytes } from '@/lib/security/sanitizer';
 import { getSecureDownloadUrlAction, accessShareByCodeAction } from '@/lib/actions/access-actions';
 import { decryptText } from '@/lib/crypto/e2ee';
 import { playDownloadSound } from '@/lib/audio/sound-effects';
@@ -21,7 +22,6 @@ import {
   Download,
   Copy,
   Check,
-  Clock,
   Lock,
   Flame,
   Flag,
@@ -75,25 +75,7 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
-  // Countdown timer state
-  const [timeRemaining, setTimeRemaining] = useState(
-    calculateTimeRemaining(share.expires_at)
-  );
-
-  // 1. Expiry Countdown interval
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const remaining = calculateTimeRemaining(share.expires_at);
-      setTimeRemaining(remaining);
-      if (remaining.isExpired) {
-        setIsTerminated(true);
-        setTerminationReason('Expired & Purged');
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [share.expires_at]);
-
-  // 2. Real-Time Supabase WebSocket Subscription & Live Polling Heartbeat
+  // 1. Real-Time Supabase WebSocket Subscription & Live Polling Heartbeat
   useEffect(() => {
     if (isTerminated) return;
 
@@ -276,9 +258,6 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
   // If password protected and content not yet unlocked
   const needsPasswordPrompt = share.is_password_protected && !share.text_content && !share.preview_url && share.type === 'text';
 
-  const isImage = share.mime_type?.startsWith('image/');
-  const isPdf = share.mime_type === 'application/pdf';
-
   // ---------------------------------------------------------------------------
   // REAL-TIME TERMINATION SCREEN OVERLAY
   // ---------------------------------------------------------------------------
@@ -347,12 +326,13 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-center">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-            <Clock className={`w-3.5 h-3.5 ${timeRemaining.isExpired ? 'text-red-500' : 'text-amber-600'}`} />
-            <span className={timeRemaining.isExpired ? 'text-red-600 font-semibold' : 'text-slate-700 font-medium'}>
-              {timeRemaining.formatted}
-            </span>
-          </div>
+          <CountdownClock
+            expiresAt={share.expires_at}
+            onExpire={() => {
+              setIsTerminated(true);
+              setTerminationReason('Expired & Purged');
+            }}
+          />
 
           <button
             onClick={() => setReportModalOpen(true)}
@@ -574,49 +554,20 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
                 )}
               </Card>
 
-              {/* INLINE SAFE PREVIEW SECTION WITH CONFIDENTIAL SHIELD */}
+              {/* INLINE SAFE ADVANCED PREVIEW SECTION */}
               <Card className="p-6 space-y-4 bg-white border-slate-200 shadow-md">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <Eye className="w-4 h-4 text-blue-600" />
-                  File Preview
+                  Advanced File Preview
                 </h3>
 
-                <ConfidentialShield shareCode={share.share_code}>
-                  {share.preview_url && isImage && (
-                    <div className="flex justify-center bg-slate-50 rounded-xl p-4 border border-slate-200">
-                      <Image
-                        src={share.preview_url}
-                        alt={share.file_name || 'Preview'}
-                        width={800}
-                        height={500}
-                        className="max-h-[500px] w-auto rounded-lg object-contain"
-                        unoptimized
-                      />
-                    </div>
-                  )}
-
-                  {share.preview_url && isPdf && (
-                    <div className="w-full h-[600px] rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-                      <iframe
-                        src={`${share.preview_url}#toolbar=0`}
-                        className="w-full h-full"
-                        title="PDF Preview"
-                      />
-                    </div>
-                  )}
-
-                  {!isImage && !isPdf && (
-                    <div className="flex flex-col items-center justify-center p-8 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
-                      <FileIcon className="h-10 w-10 text-slate-400" />
-                      <h4 className="text-sm font-semibold text-slate-700">
-                        Preview unavailable for this format
-                      </h4>
-                      <p className="text-xs text-slate-500 max-w-sm">
-                        This file format cannot be rendered safely in browser preview. Please download the file to inspect its content.
-                      </p>
-                    </div>
-                  )}
-                </ConfidentialShield>
+                <AdvancedFilePreview
+                  previewUrl={share.preview_url}
+                  fileName={share.file_name || share.title}
+                  mimeType={share.mime_type}
+                  textContent={isE2ee ? e2eeDecryptedText : share.text_content}
+                  shareCode={share.share_code}
+                />
               </Card>
             </div>
           )}

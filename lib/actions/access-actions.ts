@@ -6,6 +6,7 @@ import { isValid6DigitCode } from '@/lib/security/code-generator';
 import { verifyPassword } from '@/lib/security/passwords';
 import { isSafePreviewableMime } from '@/lib/security/file-guard';
 import { SharePublicView, ApiResponse } from '@/types/database';
+import { sendCreatorDownloadAlert } from '@/lib/notifications/email-service';
 import { headers } from 'next/headers';
 
 const GENERIC_ERROR_MESSAGE = 'Invalid or unavailable share code.';
@@ -258,6 +259,20 @@ export async function getSecureDownloadUrlAction(
       share.max_downloads !== null
         ? Math.max(0, share.max_downloads - (share.download_count + 1))
         : null;
+
+    // Asynchronously dispatch creator download email alert
+    const clientIp = await getClientIp();
+    sendCreatorDownloadAlert({
+      shareId: share.id,
+      shareCode: share.share_code,
+      fileName: share.file_name || share.title || 'Shared File',
+      ownerId: share.owner_id,
+      clientIp,
+      downloadCount: share.download_count + 1,
+      maxDownloads: share.max_downloads,
+    }).catch(() => {
+      // Non-blocking
+    });
 
     return {
       success: true,

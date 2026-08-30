@@ -4,6 +4,7 @@ import React from 'react';
 import { Card } from '@/components/ui/Card';
 import { Share } from '@/types/database';
 import { formatBytes } from '@/lib/security/sanitizer';
+import { ActivityTrendChart } from '@/components/analytics/ActivityTrendChart';
 import {
   Share2,
   CheckCircle2,
@@ -86,25 +87,37 @@ export function DashboardOverview({ shares }: DashboardOverviewProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-      {statCards.map((stat, i) => (
-        <Card key={i} className="p-4 sm:p-5 space-y-2 bg-white border-slate-200 shadow-2xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 truncate">
-              {stat.title}
-            </span>
-            <div className={`p-2 rounded-xl border ${stat.bg}`}>
-              {stat.icon}
+    <div className="space-y-6">
+      {/* 6 Quick Metrics */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+        {statCards.map((stat, i) => (
+          <Card key={i} className="p-4 sm:p-5 space-y-2 bg-white border-slate-200 shadow-2xs hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 truncate">
+                {stat.title}
+              </span>
+              <div className={`p-2 rounded-xl border ${stat.bg}`}>
+                {stat.icon}
+              </div>
             </div>
-          </div>
-          <div>
-            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              {stat.value}
-            </span>
-            <p className="text-[11px] text-slate-400 mt-0.5">{stat.description}</p>
-          </div>
-        </Card>
-      ))}
+            <div>
+              <p className="text-xl sm:text-2xl font-black text-slate-900">
+                {stat.value}
+              </p>
+              <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                {stat.description}
+              </p>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Interactive Activity Trend Curve Chart */}
+      <ActivityTrendChart
+        title="Your Vault Traffic & Downloads Velocity"
+        totalViews={totalViews}
+        totalDownloads={totalDownloads}
+      />
     </div>
   );
 }

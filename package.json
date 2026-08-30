@@ -2,6 +2,10 @@
   "name": "deploshare",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "deploshare": "./bin/deploshare.mjs",
+    "deplo": "./bin/deploshare.mjs"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

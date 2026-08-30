@@ -682,16 +682,23 @@ export function ShareCreator() {
 
           {/* Upload Progress Bar */}
           {isSubmitting && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-slate-600">
-                <span>{progressStatus}</span>
-                <span className="font-semibold text-blue-600">{uploadProgress}%</span>
+            <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-200 space-y-2.5 animate-fadeIn">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-slate-700 flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-blue-600 animate-ping" />
+                  {progressStatus}
+                </span>
+                <span className="font-mono font-bold text-blue-600">{uploadProgress}%</span>
               </div>
-              <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className="w-full h-2.5 rounded-full bg-blue-100/80 overflow-hidden p-0.5 border border-blue-200">
                 <div
-                  className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-300"
+                  className="h-full rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 transition-all duration-300 shadow-sm"
                   style={{ width: `${uploadProgress}%` }}
                 />
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                <span>Fast TLS 1.3 Ephemeral Stream</span>
+                <span>{uploadProgress < 100 ? 'Processing...' : 'Completed'}</span>
               </div>
             </div>
           )}

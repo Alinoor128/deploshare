@@ -26,6 +26,10 @@ export function calculateTimeRemaining(expiresAt: string): {
   isExpired: boolean;
   formatted: string;
   secondsRemaining: number;
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
 } {
   const expiryTime = new Date(expiresAt).getTime();
   const now = Date.now();
@@ -36,38 +40,61 @@ export function calculateTimeRemaining(expiresAt: string): {
       isExpired: true,
       formatted: 'Expired',
       secondsRemaining: 0,
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
     };
   }
 
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
+  const totalSecs = Math.floor(diff / 1000);
+  const totalMins = Math.floor(totalSecs / 60);
+  const totalHours = Math.floor(totalMins / 60);
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  const minutes = totalMins % 60;
+  const seconds = totalSecs % 60;
 
   if (days > 0) {
     return {
       isExpired: false,
-      formatted: `${days}d ${hours % 24}h remaining`,
-      secondsRemaining: seconds,
+      formatted: `${days}d ${hours}h remaining`,
+      secondsRemaining: totalSecs,
+      days,
+      hours,
+      minutes,
+      seconds,
     };
   }
-  if (hours > 0) {
+  if (totalHours > 0) {
     return {
       isExpired: false,
-      formatted: `${hours}h ${minutes % 60}m remaining`,
-      secondsRemaining: seconds,
+      formatted: `${hours}h ${minutes}m remaining`,
+      secondsRemaining: totalSecs,
+      days: 0,
+      hours,
+      minutes,
+      seconds,
     };
   }
   if (minutes > 0) {
     return {
       isExpired: false,
-      formatted: `${minutes}m ${seconds % 60}s remaining`,
-      secondsRemaining: seconds,
+      formatted: `${minutes}m ${seconds}s remaining`,
+      secondsRemaining: totalSecs,
+      days: 0,
+      hours: 0,
+      minutes,
+      seconds,
     };
   }
   return {
     isExpired: false,
     formatted: `${seconds}s remaining`,
-    secondsRemaining: seconds,
+    secondsRemaining: totalSecs,
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds,
   };
 }

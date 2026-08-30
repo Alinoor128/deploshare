@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Share, Report, CleanupLog, PurgeResult } from '@/types/database';
+import { ActivityTrendChart } from '@/components/analytics/ActivityTrendChart';
 import { formatBytes } from '@/lib/security/sanitizer';
 import {
   getAdminStatsAction,
@@ -297,27 +298,12 @@ export function AdminDashboard() {
             </Card>
           </div>
 
-          {/* Quick Abuse Alert Box */}
-          {Boolean(stats && stats.pendingReports > 0) && (
-            <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-                <div>
-                  <h4 className="text-sm font-bold">Action Required: Pending Content Reports</h4>
-                  <p className="text-xs text-amber-700">
-                    There are {stats?.pendingReports} unreviewed user abuse reports awaiting moderation.
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setActiveTab('reports')}
-              >
-                Review Reports
-              </Button>
-            </div>
-          )}
+          {/* Interactive Traffic & Bandwidth Trend Chart */}
+          <ActivityTrendChart
+            title="Global Platform Ingestion & Download Velocity"
+            totalViews={stats?.totalViews ?? 0}
+            totalDownloads={stats?.totalDownloads ?? 0}
+          />
         </div>
       )}
 

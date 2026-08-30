@@ -76,6 +76,30 @@ export default function SettingsPage() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Stripe Checkout
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  const handleUpgrade = async (plan: 'PRO' | 'BUSINESS') => {
+    setCheckoutLoading(plan);
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || 'Failed to initialize Stripe checkout.');
+      }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Checkout error');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
   const loadData = async () => {
     try {
       const [userRes, sharesRes, keysRes] = await Promise.all([
@@ -325,6 +349,88 @@ export default function SettingsPage() {
               Save Profile Changes
             </Button>
           </form>
+        </Card>
+
+        {/* SUBSCRIPTION & BILLING */}
+        <Card className="p-6 space-y-5 bg-white border-slate-200 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <HardDrive className="w-5 h-5 text-blue-600" />
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Subscription & Storage Quota</h2>
+                <p className="text-xs text-slate-500">
+                  Manage your subscription tier, billing, and file size allowances.
+                </p>
+              </div>
+            </div>
+            <Badge variant="info" size="md">
+              Current Plan: Free Tier (25 MB)
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Pro Tier Upgrade */}
+            <div className="p-5 rounded-2xl border border-blue-200 bg-blue-50/40 space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold text-slate-900">DeploShare Pro</h3>
+                <span className="text-base font-black text-blue-600">$9 / mo</span>
+              </div>
+              <ul className="text-xs text-slate-600 space-y-1.5">
+                <li className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                  <span>2 GB per upload file limit</span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                  <span>30-day retention policies</span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Unlimited active shares</span>
+                </li>
+              </ul>
+              <Button
+                variant="glow"
+                size="sm"
+                className="w-full"
+                isLoading={checkoutLoading === 'PRO'}
+                onClick={() => handleUpgrade('PRO')}
+              >
+                Upgrade to Pro ($9)
+              </Button>
+            </div>
+
+            {/* Business Tier Upgrade */}
+            <div className="p-5 rounded-2xl border border-purple-200 bg-purple-50/40 space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold text-slate-900">DeploShare Business</h3>
+                <span className="text-base font-black text-purple-600">$29 / mo</span>
+              </div>
+              <ul className="text-xs text-slate-600 space-y-1.5">
+                <li className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                  <span>10 GB per upload file limit</span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                  <span>90-day retention policies</span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                  <span>REST API priority rate limits</span>
+                </li>
+              </ul>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                isLoading={checkoutLoading === 'BUSINESS'}
+                onClick={() => handleUpgrade('BUSINESS')}
+              >
+                Upgrade to Business ($29)
+              </Button>
+            </div>
+          </div>
         </Card>
 
         {/* DEVELOPER REST API KEYS */}
