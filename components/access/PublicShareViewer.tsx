@@ -2,17 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { ReportModal } from '@/components/access/ReportModal';
 import { BurnShredderModal } from '@/components/access/BurnShredderModal';
+import { ConfidentialShield } from '@/components/security/ConfidentialShield';
 import { SharePublicView } from '@/types/database';
 import { formatBytes, calculateTimeRemaining } from '@/lib/security/sanitizer';
 import { getSecureDownloadUrlAction, accessShareByCodeAction } from '@/lib/actions/access-actions';
 import { decryptText } from '@/lib/crypto/e2ee';
 import { playDownloadSound } from '@/lib/audio/sound-effects';
+import { createClient } from '@/lib/supabase/client';
 import {
   FileIcon,
   Download,
@@ -29,6 +32,7 @@ import {
   CheckCircle2,
   KeyRound,
   Key,
+  ShieldAlert,
 } from 'lucide-react';
 
 export interface PublicShareViewerProps {
@@ -41,6 +45,20 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
   const [copiedText, setCopiedText] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [burnModalOpen, setBurnModalOpen] = useState(false);
+
+  // Real-Time Eviction & Revocation State
+  const [isTerminated, setIsTerminated] = useState(() =>
+    Boolean(share.revoked || share.consumed || new Date(share.expires_at).getTime() <= Date.now())
+  );
+  const [terminationReason, setTerminationReason] = useState<string>(() =>
+    share.revoked
+      ? 'Revoked by Administrator / Creator'
+      : share.consumed
+      ? 'Burned & Purged upon Download'
+      : new Date(share.expires_at).getTime() <= Date.now()
+      ? 'Expired & Purged'
+      : ''
+  );
 
   // Password unlock state
   const [passwordInput, setPasswordInput] = useState('');
@@ -62,12 +80,77 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
     calculateTimeRemaining(share.expires_at)
   );
 
+  // 1. Expiry Countdown interval
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeRemaining(calculateTimeRemaining(share.expires_at));
+      const remaining = calculateTimeRemaining(share.expires_at);
+      setTimeRemaining(remaining);
+      if (remaining.isExpired) {
+        setIsTerminated(true);
+        setTerminationReason('Expired & Purged');
+      }
     }, 1000);
     return () => clearInterval(timer);
   }, [share.expires_at]);
+
+  // 2. Real-Time Supabase WebSocket Subscription & Live Polling Heartbeat
+  useEffect(() => {
+    if (isTerminated) return;
+
+    // Realtime Supabase Channel
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`share_realtime_view_${share.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shares',
+          filter: `id=eq.${share.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            setIsTerminated(true);
+            setTerminationReason('Deleted by Administrator');
+          } else if (payload.new) {
+            const updated = payload.new as { revoked?: boolean; consumed?: boolean };
+            if (updated.revoked) {
+              setIsTerminated(true);
+              setTerminationReason('Revoked by Administrator');
+            } else if (updated.consumed) {
+              setIsTerminated(true);
+              setTerminationReason('Burned & Self-Destructed');
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    // Heartbeat Live Polling Fallback (every 2.5 seconds)
+    const heartbeat = setInterval(async () => {
+      try {
+        const res = await accessShareByCodeAction(share.share_code);
+        if (!res.success || !res.data) {
+          setIsTerminated(true);
+          setTerminationReason('Revoked or Purged by Administrator');
+        } else if (res.data.revoked) {
+          setIsTerminated(true);
+          setTerminationReason('Revoked by Administrator');
+        } else if (res.data.consumed) {
+          setIsTerminated(true);
+          setTerminationReason('Burned & Self-Destructed');
+        }
+      } catch {
+        // Network error ignored
+      }
+    }, 2500);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(heartbeat);
+    };
+  }, [share.id, share.share_code, isTerminated]);
 
   const isE2ee = Boolean(
     share.text_content && share.text_content.startsWith('[DPS_E2EE_V1_PAYLOAD]:')
@@ -141,7 +224,7 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
   };
 
   const handleDownload = async () => {
-    if (!share.allow_download) return;
+    if (!share.allow_download || isTerminated) return;
     setIsDownloading(true);
     setDownloadError(null);
 
@@ -178,6 +261,8 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
       // Trigger Burn Destruction Modal if share was burned
       if (res.data.burned || share.burn_after_download) {
         setTimeout(() => {
+          setIsTerminated(true);
+          setTerminationReason('Burned & Purged after Download');
           setBurnModalOpen(true);
         }, 1200);
       }
@@ -193,6 +278,43 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
 
   const isImage = share.mime_type?.startsWith('image/');
   const isPdf = share.mime_type === 'application/pdf';
+
+  // ---------------------------------------------------------------------------
+  // REAL-TIME TERMINATION SCREEN OVERLAY
+  // ---------------------------------------------------------------------------
+  if (isTerminated) {
+    return (
+      <div className="w-full max-w-lg mx-auto py-10 px-4">
+        <Card glow className="p-8 text-center space-y-6 bg-white border-red-200 shadow-2xl animate-shake">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-600 mx-auto border border-red-200 shadow-sm">
+            <ShieldAlert className="h-8 w-8" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
+              <span className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
+              <span>Real-Time Eviction Active</span>
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              Access Terminated
+            </h2>
+            <p className="text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
+              {terminationReason || 'This share was revoked, deleted, or burned by the administrator.'}{' '}
+              All active previews and file downloads have been severed immediately.
+            </p>
+          </div>
+
+          <div className="pt-2">
+            <Link href="/access">
+              <Button variant="glow" size="md" className="w-full">
+                Enter Another 6-Digit Code
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
@@ -291,7 +413,7 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
           </form>
         </Card>
       ) : (
-        /* MAIN SHARE CONTENT VIEWER */
+        /* MAIN SHARE CONTENT VIEWER WITH CONFIDENTIAL SHIELD */
         <div className="space-y-6">
           {/* TEXT SHARE VIEW */}
           {share.type === 'text' && (
@@ -342,10 +464,12 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
                 </div>
               )}
 
-              {/* Monospace Safe Render */}
-              <div className="relative rounded-xl bg-slate-50 border border-slate-200 p-4 font-mono text-sm text-slate-900 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-[500px] select-text shadow-inner">
-                {(isE2ee ? e2eeDecryptedText : share.text_content) || 'Decrypted content will appear here...'}
-              </div>
+              {/* Monospace Confidential Protected Safe Render */}
+              <ConfidentialShield shareCode={share.share_code}>
+                <div className="relative rounded-xl bg-slate-50 border border-slate-200 p-4 font-mono text-sm text-slate-900 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-[500px] select-text shadow-inner">
+                  {(isE2ee ? e2eeDecryptedText : share.text_content) || 'Decrypted content will appear here...'}
+                </div>
+              </ConfidentialShield>
 
               {/* Text Metrics Footer */}
               <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
@@ -355,7 +479,7 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
                 </span>
                 <span className="flex items-center gap-1 text-emerald-600 font-medium">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  Sanitized & Safe
+                  Confidential & Safe
                 </span>
               </div>
             </Card>
@@ -450,47 +574,49 @@ export function PublicShareViewer({ share: initialShare }: PublicShareViewerProp
                 )}
               </Card>
 
-              {/* INLINE SAFE PREVIEW SECTION */}
+              {/* INLINE SAFE PREVIEW SECTION WITH CONFIDENTIAL SHIELD */}
               <Card className="p-6 space-y-4 bg-white border-slate-200 shadow-md">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <Eye className="w-4 h-4 text-blue-600" />
                   File Preview
                 </h3>
 
-                {share.preview_url && isImage && (
-                  <div className="flex justify-center bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <Image
-                      src={share.preview_url}
-                      alt={share.file_name || 'Preview'}
-                      width={800}
-                      height={500}
-                      className="max-h-[500px] w-auto rounded-lg object-contain"
-                      unoptimized
-                    />
-                  </div>
-                )}
+                <ConfidentialShield shareCode={share.share_code}>
+                  {share.preview_url && isImage && (
+                    <div className="flex justify-center bg-slate-50 rounded-xl p-4 border border-slate-200">
+                      <Image
+                        src={share.preview_url}
+                        alt={share.file_name || 'Preview'}
+                        width={800}
+                        height={500}
+                        className="max-h-[500px] w-auto rounded-lg object-contain"
+                        unoptimized
+                      />
+                    </div>
+                  )}
 
-                {share.preview_url && isPdf && (
-                  <div className="w-full h-[600px] rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-                    <iframe
-                      src={`${share.preview_url}#toolbar=0`}
-                      className="w-full h-full"
-                      title="PDF Preview"
-                    />
-                  </div>
-                )}
+                  {share.preview_url && isPdf && (
+                    <div className="w-full h-[600px] rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                      <iframe
+                        src={`${share.preview_url}#toolbar=0`}
+                        className="w-full h-full"
+                        title="PDF Preview"
+                      />
+                    </div>
+                  )}
 
-                {!isImage && !isPdf && (
-                  <div className="flex flex-col items-center justify-center p-8 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
-                    <FileIcon className="h-10 w-10 text-slate-400" />
-                    <h4 className="text-sm font-semibold text-slate-700">
-                      Preview unavailable for this format
-                    </h4>
-                    <p className="text-xs text-slate-500 max-w-sm">
-                      This file format cannot be rendered safely in browser preview. Please download the file to inspect its content.
-                    </p>
-                  </div>
-                )}
+                  {!isImage && !isPdf && (
+                    <div className="flex flex-col items-center justify-center p-8 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
+                      <FileIcon className="h-10 w-10 text-slate-400" />
+                      <h4 className="text-sm font-semibold text-slate-700">
+                        Preview unavailable for this format
+                      </h4>
+                      <p className="text-xs text-slate-500 max-w-sm">
+                        This file format cannot be rendered safely in browser preview. Please download the file to inspect its content.
+                      </p>
+                    </div>
+                  )}
+                </ConfidentialShield>
               </Card>
             </div>
           )}

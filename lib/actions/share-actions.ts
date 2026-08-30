@@ -20,6 +20,9 @@ export interface CreateShareInput {
   allowDownload?: boolean;
 }
 
+import { headers } from 'next/headers';
+import { checkShareCreationRateLimit } from '@/lib/security/rate-limiter';
+
 /**
  * Server Action: Create a new Share (File or Text) with guaranteed unique 6-digit code.
  */
@@ -27,6 +30,23 @@ export async function createShareAction(
   formData: FormData
 ): Promise<ApiResponse<{ shareCode: string; shareId: string; expiresAt: string }>> {
   try {
+    let clientIp = '127.0.0.1';
+    try {
+      const h = await headers();
+      const forwarded = h.get('x-forwarded-for');
+      clientIp = forwarded ? forwarded.split(',')[0].trim() : (h.get('x-real-ip') || '127.0.0.1');
+    } catch {
+      // Ignore header error
+    }
+
+    const rateCheck = await checkShareCreationRateLimit(clientIp);
+    if (!rateCheck.allowed) {
+      return {
+        success: false,
+        error: `Upload rate limit exceeded. Please wait ${rateCheck.retryAfterSeconds} seconds before creating another share.`,
+      };
+    }
+
     const supabaseServer = await createServerSupabase();
     const adminSupabase = createAdminClient();
 
@@ -39,6 +59,21 @@ export async function createShareAction(
     const title = (formData.get('title') as string) || null;
     const textContent = (formData.get('textContent') as string) || null;
     const password = (formData.get('password') as string) || null;
+
+    if (textContent && textContent.length > 200_000) {
+      return {
+        success: false,
+        error: 'Text snippet exceeds maximum allowed size of 200,000 characters (200 KB).',
+      };
+    }
+
+    if (title && title.length > 150) {
+      return {
+        success: false,
+        error: 'Share title cannot exceed 150 characters.',
+      };
+    }
+
     const expirySeconds = parseInt(
       (formData.get('expirySeconds') as string) || '86400',
       10

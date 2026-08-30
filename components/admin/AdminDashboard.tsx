@@ -125,23 +125,63 @@ export function AdminDashboard() {
 
   const handleToggleUserSuspension = async (userId: string, currentStatus: string) => {
     const isSuspended = currentStatus === 'suspended';
+    const nextStatus = isSuspended ? 'active' : 'suspended';
+
+    // 0ms Optimistic UI Update
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, status: nextStatus } : u))
+    );
+    setStats((prev) =>
+      prev
+        ? {
+            ...prev,
+            suspendedUsers:
+              nextStatus === 'suspended'
+                ? prev.suspendedUsers + 1
+                : Math.max(0, prev.suspendedUsers - 1),
+          }
+        : null
+    );
+
+    // Background server sync
     await toggleUserSuspensionAction(userId, !isSuspended);
-    await loadData(false);
   };
 
   const handleAdminRevoke = async (shareId: string) => {
+    // 0ms Optimistic UI Update
+    setShares((prev) =>
+      prev.map((s) => (s.id === shareId ? { ...s, revoked: true } : s))
+    );
+    setStats((prev) =>
+      prev ? { ...prev, activeShares: Math.max(0, prev.activeShares - 1) } : null
+    );
+
+    // Background server sync
     await adminRevokeShareAction(shareId);
-    await loadData(false);
   };
 
   const handleAdminDelete = async (shareId: string) => {
+    // 0ms Optimistic UI Update
+    setShares((prev) => prev.filter((s) => s.id !== shareId));
+    setStats((prev) =>
+      prev ? { ...prev, totalShares: Math.max(0, prev.totalShares - 1) } : null
+    );
+
+    // Background server sync
     await adminDeleteShareAction(shareId);
-    await loadData(false);
   };
 
   const handleResolveReport = async (reportId: string, status: 'resolved' | 'rejected', deleteContent = false) => {
+    // 0ms Optimistic UI Update
+    setReports((prev) =>
+      prev.map((r) => (r.id === reportId ? { ...r, status } : r))
+    );
+    setStats((prev) =>
+      prev ? { ...prev, pendingReports: Math.max(0, prev.pendingReports - 1) } : null
+    );
+
+    // Background server sync
     await resolveReportAction(reportId, status, deleteContent);
-    await loadData(false);
   };
 
   const handleRunStoragePurge = async () => {

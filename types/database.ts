@@ -130,6 +130,8 @@ export interface SharePublicView {
   created_at: string;
   is_password_protected: boolean;
   preview_url?: string | null;
+  revoked?: boolean;
+  consumed?: boolean;
 }
 
 export interface ApiResponse<T = unknown> {

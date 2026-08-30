@@ -142,3 +142,46 @@ export async function resetRateLimit(identifier: string): Promise<void> {
     // Ignore error
   }
 }
+
+/**
+ * Strict Auth Rate Limiter (Prevents brute-force, password guessing, and bot signup spam).
+ */
+export async function checkAuthRateLimit(
+  ip: string,
+  action: 'login' | 'signup'
+): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
+  const identifier = `auth_${action}_${ip}`;
+  const maxAttempts = action === 'login' ? 5 : 3; // 5 logins / 15m, 3 signups / 1h
+  const windowMs = action === 'login' ? 15 * 60 * 1000 : 60 * 60 * 1000;
+
+  const result = await checkRateLimit(identifier, maxAttempts, windowMs);
+  if (!result.allowed) {
+    const retryAfter = result.lockedUntil
+      ? Math.max(1, Math.ceil((result.lockedUntil.getTime() - Date.now()) / 1000))
+      : 60;
+    return { allowed: false, retryAfterSeconds: retryAfter };
+  }
+
+  return { allowed: true, retryAfterSeconds: 0 };
+}
+
+/**
+ * Share Creation DDoS & Spam Limiter (Prevents automated loop scripts filling bucket/DB).
+ */
+export async function checkShareCreationRateLimit(
+  ip: string
+): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
+  const identifier = `create_share_${ip}`;
+  const maxShares = 15; // 15 shares per 10 minutes per IP
+  const windowMs = 10 * 60 * 1000;
+
+  const result = await checkRateLimit(identifier, maxShares, windowMs);
+  if (!result.allowed) {
+    const retryAfter = result.lockedUntil
+      ? Math.max(1, Math.ceil((result.lockedUntil.getTime() - Date.now()) / 1000))
+      : 60;
+    return { allowed: false, retryAfterSeconds: retryAfter };
+  }
+
+  return { allowed: true, retryAfterSeconds: 0 };
+}

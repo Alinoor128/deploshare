@@ -6,6 +6,23 @@ import { ApiResponse, Profile } from '@/types/database';
 import { User, Session } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 
+import { headers } from 'next/headers';
+import { checkAuthRateLimit, recordFailedAttempt, resetRateLimit } from '@/lib/security/rate-limiter';
+
+/**
+ * Extract client IP from headers.
+ */
+async function getClientIp(): Promise<string> {
+  try {
+    const h = await headers();
+    const forwarded = h.get('x-forwarded-for');
+    if (forwarded) return forwarded.split(',')[0].trim();
+    return h.get('x-real-ip') || '127.0.0.1';
+  } catch {
+    return '127.0.0.1';
+  }
+}
+
 /**
  * Sign up with Email and Password.
  */
@@ -13,6 +30,15 @@ export async function signUpAction(
   formData: FormData
 ): Promise<ApiResponse<{ user: User | null; session: Session | null }>> {
   try {
+    const clientIp = await getClientIp();
+    const rateCheck = await checkAuthRateLimit(clientIp, 'signup');
+    if (!rateCheck.allowed) {
+      return {
+        success: false,
+        error: `Too many signup attempts. Please try again in ${rateCheck.retryAfterSeconds} seconds.`,
+      };
+    }
+
     const email = (formData.get('email') as string)?.trim();
     const password = (formData.get('password') as string)?.trim();
     const fullName = (formData.get('fullName') as string)?.trim();
@@ -21,8 +47,12 @@ export async function signUpAction(
       return { success: false, error: 'Email and password are required.' };
     }
 
-    if (password.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters.' };
+    if (email.length > 120 || (fullName && fullName.length > 80)) {
+      return { success: false, error: 'Input exceeds maximum allowed length.' };
+    }
+
+    if (password.length < 6 || password.length > 72) {
+      return { success: false, error: 'Password must be between 6 and 72 characters.' };
     }
 
     const supabase = await createClient();
@@ -38,8 +68,11 @@ export async function signUpAction(
     });
 
     if (error) {
+      await recordFailedAttempt(`auth_signup_${clientIp}`);
       return { success: false, error: error.message };
     }
+
+    await resetRateLimit(`auth_signup_${clientIp}`);
 
     return {
       success: true,
@@ -60,11 +93,24 @@ export async function signInAction(
   formData: FormData
 ): Promise<ApiResponse<{ user: User | null; session: Session | null }>> {
   try {
+    const clientIp = await getClientIp();
+    const rateCheck = await checkAuthRateLimit(clientIp, 'login');
+    if (!rateCheck.allowed) {
+      return {
+        success: false,
+        error: `Too many failed login attempts. Please wait ${rateCheck.retryAfterSeconds} seconds before retrying.`,
+      };
+    }
+
     const email = (formData.get('email') as string)?.trim();
     const password = (formData.get('password') as string)?.trim();
 
     if (!email || !password) {
       return { success: false, error: 'Email and password are required.' };
+    }
+
+    if (email.length > 120 || password.length > 72) {
+      return { success: false, error: 'Invalid email or password length.' };
     }
 
     const supabase = await createClient();
@@ -75,8 +121,11 @@ export async function signInAction(
     });
 
     if (error) {
+      await recordFailedAttempt(`auth_login_${clientIp}`);
       return { success: false, error: error.message };
     }
+
+    await resetRateLimit(`auth_login_${clientIp}`);
 
     return {
       success: true,
