@@ -23,7 +23,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://deploshare.com'),
+  metadataBase: new URL(BRAND_CONFIG.url),
   title: {
     default: `${BRAND_CONFIG.name} — Secure 6-Digit Code Temporary File & Text Sharing`,
     template: `%s | ${BRAND_CONFIG.name}`,
@@ -52,13 +52,13 @@ export const metadata: Metadata = {
     'fast code drop',
     'secure file drop',
   ],
-  authors: [{ name: 'DeploShare Engineering Team', url: 'https://deploshare.com' }],
+  authors: [{ name: 'DeploShare Engineering Team', url: BRAND_CONFIG.url }],
   creator: 'DeploShare Inc.',
   publisher: 'DeploShare Inc.',
   applicationName: 'DeploShare',
   generator: 'Next.js',
   alternates: {
-    canonical: 'https://deploshare.com',
+    canonical: BRAND_CONFIG.url,
   },
   verification: {
     google: 'googlec7d26ea88dfa07cb',
