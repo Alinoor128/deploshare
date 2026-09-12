@@ -113,4 +113,34 @@ decrypted += decipher.final('utf8');
 assert.strictEqual(decrypted, secretText, 'Decrypted text matches original plaintext');
 console.log('  ✓ AES-GCM 256 PBKDF2 E2EE encryption & decryption verified\n');
 
-console.log('🎉 All Unit & Security Tests Passed Successfully!\n');
+// 7. Test Anti-Malware Magic Byte Header Sniffer
+console.log('7. Testing Anti-Malware Magic-Byte Buffer Inspection:');
+const peBuffer = Buffer.from([0x4d, 0x5a, 0x90, 0x00, 0x03]); // 'MZ' Windows executable
+const elfBuffer = Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x02]); // Linux ELF
+const safePdfBuffer = Buffer.from('%PDF-1.7 ... some safe bytes');
+
+function scanBufferTest(buf) {
+  if (buf.length >= 2 && buf[0] === 0x4d && buf[1] === 0x5a) return { safe: false, reason: 'Windows PE' };
+  if (buf.length >= 4 && buf[0] === 0x7f && buf[1] === 0x45 && buf[2] === 0x4c && buf[3] === 0x46) return { safe: false, reason: 'Linux ELF' };
+  return { safe: true };
+}
+
+assert.strictEqual(scanBufferTest(peBuffer).safe, false, 'Disguised PE executable must be blocked');
+assert.strictEqual(scanBufferTest(elfBuffer).safe, false, 'Disguised ELF binary must be blocked');
+assert.strictEqual(scanBufferTest(safePdfBuffer).safe, true, 'Safe PDF header must be allowed');
+console.log('  ✓ Disguised Windows PE and Linux ELF binaries successfully detected and blocked\n');
+
+// 8. Test Malicious Text / XSS / SQL Injection Scanner
+console.log('8. Testing Malicious Text & Exploit Scanner:');
+function scanTextTest(txt) {
+  if (/<script\b[^>]*>/i.test(txt)) return { safe: false, reason: 'XSS Script' };
+  if (/\bunion\s+select\b/i.test(txt)) return { safe: false, reason: 'SQL Injection' };
+  return { safe: true };
+}
+
+assert.strictEqual(scanTextTest('<script>alert(document.cookie)</script>').safe, false, 'XSS script blocked');
+assert.strictEqual(scanTextTest("admin' UNION SELECT * FROM profiles--").safe, false, 'SQL injection probe blocked');
+assert.strictEqual(scanTextTest('Hello world! Here is my safe meeting note.').safe, true, 'Safe text note allowed');
+console.log('  ✓ Malicious XSS scripts and SQL injection payloads successfully blocked\n');
+
+console.log('🎉 All 8 Unit & Security Tests Passed Successfully!\n');

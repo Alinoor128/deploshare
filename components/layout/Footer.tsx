@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { BRAND_CONFIG } from '@/lib/config/brand';
 import { DeploShareLogo } from '@/components/ui/DeploShareLogo';
 import { Shield, Zap, Lock, Globe, FileCode } from 'lucide-react';
+import { InstagramIcon } from '@/components/ui/InstagramIcon';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -101,6 +102,17 @@ export function Footer() {
                 <Link href="/api-docs" className="hover:text-blue-600 transition-colors text-blue-600 font-semibold">
                   Developer REST API
                 </Link>
+              </li>
+              <li>
+                <a
+                  href="https://www.instagram.com/__alinoor__001/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-pink-600 transition-colors text-pink-600 font-semibold flex items-center gap-1.5"
+                >
+                  <InstagramIcon className="w-3.5 h-3.5" />
+                  <span>Developer (@__alinoor__001)</span>
+                </a>
               </li>
               <li>
                 <Link href="/#faq" className="hover:text-blue-600 transition-colors text-slate-600">

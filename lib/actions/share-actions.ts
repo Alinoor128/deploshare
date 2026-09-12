@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { generateUniqueShareCode } from '@/lib/security/code-generator';
 import { hashPassword } from '@/lib/security/passwords';
 import { validateAndSanitizeFile } from '@/lib/security/file-guard';
+import { scanBinaryBuffer, scanTextContent } from '@/lib/security/antivirus-scanner';
 import { BRAND_CONFIG } from '@/lib/config/brand';
 import { Share, ApiResponse } from '@/types/database';
 import crypto from 'crypto';
@@ -60,10 +61,31 @@ export async function createShareAction(
     const textContent = (formData.get('textContent') as string) || null;
     const password = (formData.get('password') as string) || null;
 
-    if (textContent && textContent.length > 200_000) {
+    // Scan text payload for malicious scripts or SQL injection exploits
+    if (textContent) {
+      const textScan = scanTextContent(textContent);
+      if (!textScan.safe) {
+        return {
+          success: false,
+          error: textScan.reason || 'Malicious text or exploit pattern detected.',
+        };
+      }
+    }
+
+    if (title) {
+      const titleScan = scanTextContent(title);
+      if (!titleScan.safe) {
+        return {
+          success: false,
+          error: titleScan.reason || 'Malicious title pattern detected.',
+        };
+      }
+    }
+
+    if (textContent && textContent.length > 500_000) {
       return {
         success: false,
-        error: 'Text snippet exceeds maximum allowed size of 200,000 characters (200 KB).',
+        error: 'Text snippet exceeds maximum allowed size of 500,000 characters (500 KB).',
       };
     }
 
@@ -137,6 +159,15 @@ export async function createShareAction(
       // Upload file buffer to Supabase private storage
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
+
+      // Deep Anti-Malware / Magic Byte Sniffing
+      const binaryScan = scanBinaryBuffer(buffer);
+      if (!binaryScan.safe) {
+        return {
+          success: false,
+          error: binaryScan.reason || 'Malicious binary payload detected. Upload rejected.',
+        };
+      }
 
       let { error: uploadError } = await adminSupabase.storage
         .from('shares')

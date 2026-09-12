@@ -19,6 +19,7 @@ import {
   Menu,
   X,
 } from 'lucide-react';
+import { InstagramIcon } from '@/components/ui/InstagramIcon';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -107,6 +108,17 @@ export function Navbar() {
 
         {/* Right CTA / Auth status */}
         <div className="hidden md:flex items-center gap-3">
+          <a
+            href="https://www.instagram.com/__alinoor__001/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 text-xs font-semibold transition-all hover:scale-105 shadow-2xs"
+            title="Follow Developer on Instagram"
+          >
+            <InstagramIcon className="w-3.5 h-3.5 text-pink-600" />
+            <span>@__alinoor__001</span>
+          </a>
+
           {loading ? (
             <div className="h-8 w-20 bg-slate-200/60 rounded-xl animate-pulse" />
           ) : currentUser ? (
@@ -213,6 +225,16 @@ export function Navbar() {
           >
             Reviews
           </Link>
+          <a
+            href="https://www.instagram.com/__alinoor__001/"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-2 py-2 text-base font-medium text-pink-600 hover:text-pink-700"
+          >
+            <InstagramIcon className="w-5 h-5 text-pink-600" />
+            Follow Developer (@__alinoor__001)
+          </a>
 
           <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
             {currentUser ? (

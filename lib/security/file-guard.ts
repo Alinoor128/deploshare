@@ -8,6 +8,7 @@ const DANGEROUS_EXTENSIONS = new Set([
   '.cmd',
   '.sh',
   '.bash',
+  '.zsh',
   '.scr',
   '.vbs',
   '.vbe',
@@ -33,6 +34,13 @@ const DANGEROUS_EXTENSIONS = new Set([
   '.drv',
   '.ocx',
   '.cpl',
+  '.hta',
+  '.apk',
+  '.app',
+  '.deb',
+  '.rpm',
+  '.iso',
+  '.bin',
 ]);
 
 export interface FileValidationResult {
@@ -51,7 +59,7 @@ export function validateAndSanitizeFile(
   fileName: string,
   fileSize: number,
   mimeType: string,
-  maxSizeBytes: number = 100 * 1024 * 1024 // default 100MB
+  maxSizeBytes: number = 5120 * 1024 * 1024 // 5 GB default
 ): FileValidationResult {
   if (!fileName || typeof fileName !== 'string') {
     return {

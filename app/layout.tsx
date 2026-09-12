@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { DeveloperFollowBanner } from '@/components/layout/DeveloperFollowBanner';
 import { BRAND_CONFIG } from '@/lib/config/brand';
 
 const geistSans = Geist({
@@ -196,6 +197,7 @@ export default function RootLayout({
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />
+        <DeveloperFollowBanner />
       </body>
     </html>
   );

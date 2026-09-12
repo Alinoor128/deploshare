@@ -25,14 +25,17 @@ export const BRAND_CONFIG = {
   domain: "deploshare.com",
   author: "DeploShare Inc.",
   supportEmail: "support@deploshare.com",
+  developerInstagram: "https://www.instagram.com/__alinoor__001/",
+  developerHandle: "@__alinoor__001",
   defaultExpirySeconds: 86400, // 24 hours
-  maxAnonymousFileSizeMB: 25,
-  maxFreeUserFileSizeMB: 100,
+  maxAnonymousFileSizeMB: 5120, // 5 GB
+  maxFreeUserFileSizeMB: 10240, // 10 GB
   maxCodeAttempts: 5,
   rateLimitWindowMs: 15 * 60 * 1000, // 15 minutes
   features: {
     anonymousSharing: true,
     qrCodeEnabled: true,
     reportsEnabled: true,
+    folderUploadEnabled: true,
   },
 } as const;

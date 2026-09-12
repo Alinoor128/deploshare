@@ -11,7 +11,6 @@ import { formatBytes } from '@/lib/security/sanitizer';
 import { bundleFilesToZip } from '@/lib/utils/zip';
 import { encryptBuffer, encryptText } from '@/lib/crypto/e2ee';
 import { playUploadSuccessSound } from '@/lib/audio/sound-effects';
-import { BRAND_CONFIG } from '@/lib/config/brand';
 import {
   UploadCloud,
   FileText,
@@ -26,16 +25,28 @@ import {
   AlertCircle,
   Trash2,
   FolderArchive,
+  FolderPlus,
   ShieldCheck,
 } from 'lucide-react';
+
+interface WebkitEntry {
+  isFile: boolean;
+  isDirectory: boolean;
+  name: string;
+  file: (callback: (file: File) => void) => void;
+  createReader: () => {
+    readEntries: (callback: (entries: WebkitEntry[]) => void) => void;
+  };
+}
 
 export function ShareCreator() {
   const [activeTab, setActiveTab] = useState<'file' | 'text'>('file');
 
-  // Multi-File state
+  // Multi-File & Folder state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const folderInputRef = useRef<HTMLInputElement | null>(null);
 
   // Text state
   const [textTitle, setTextTitle] = useState('');
@@ -81,10 +92,63 @@ export function ShareCreator() {
     setDragOver(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOver(false);
+
+    try {
+      const items = e.dataTransfer.items;
+      if (items && items.length > 0) {
+        const collectedFiles: File[] = [];
+
+        // Helper to recursively traverse directories
+        const readEntry = async (entry: WebkitEntry, currentPath = ''): Promise<void> => {
+          if (entry.isFile) {
+            await new Promise<void>((resolve) => {
+              entry.file((file: File) => {
+                if (currentPath) {
+                  Object.defineProperty(file, 'webkitRelativePath', {
+                    value: `${currentPath}${file.name}`,
+                    writable: false,
+                  });
+                }
+                collectedFiles.push(file);
+                resolve();
+              });
+            });
+          } else if (entry.isDirectory) {
+            const reader = entry.createReader();
+            const entries: WebkitEntry[] = await new Promise((resolve) => {
+              reader.readEntries((res: WebkitEntry[]) => resolve(res));
+            });
+            for (const child of entries) {
+              await readEntry(child, `${currentPath}${entry.name}/`);
+            }
+          }
+        };
+
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const itemWithEntry = item as unknown as { webkitGetAsEntry?: () => WebkitEntry | null };
+          const entry = itemWithEntry.webkitGetAsEntry ? itemWithEntry.webkitGetAsEntry() : null;
+          if (entry) {
+            await readEntry(entry);
+          } else {
+            const file = item.getAsFile();
+            if (file) collectedFiles.push(file);
+          }
+        }
+
+        if (collectedFiles.length > 0) {
+          setSelectedFiles((prev) => [...prev, ...collectedFiles]);
+          setErrorMessage(null);
+          return;
+        }
+      }
+    } catch {
+      // Fallback to standard files array
+    }
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedList = Array.from(e.dataTransfer.files);
@@ -107,9 +171,8 @@ export function ShareCreator() {
 
   const handleClearAllFiles = () => {
     setSelectedFiles([]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (folderInputRef.current) folderInputRef.current.value = '';
   };
 
   const handleResetForm = () => {
@@ -311,7 +374,7 @@ export function ShareCreator() {
             </button>
           </div>
 
-          {/* TAB 1: FILE / MULTI-FILE UPLOAD */}
+          {/* TAB 1: FILE / MULTI-FILE / FOLDER UPLOAD */}
           {activeTab === 'file' && (
             <div className="space-y-4">
               <input
@@ -323,13 +386,24 @@ export function ShareCreator() {
                 id="file-upload-input"
               />
 
+              <input
+                ref={folderInputRef}
+                type="file"
+                multiple
+                // @ts-expect-error webkitdirectory is standard for folder picking
+                webkitdirectory=""
+                directory=""
+                onChange={handleFileChange}
+                className="hidden"
+                id="folder-upload-input"
+              />
+
               {selectedFiles.length === 0 ? (
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 sm:p-12 text-center cursor-pointer transition-all duration-200 ${
+                  className={`group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 sm:p-12 text-center transition-all duration-200 ${
                     dragOver
                       ? 'border-blue-500 bg-blue-50/50 scale-[1.01]'
                       : 'border-slate-300 hover:border-blue-400 bg-slate-50/60 hover:bg-blue-50/30'
@@ -339,18 +413,37 @@ export function ShareCreator() {
                     <UploadCloud className="h-8 w-8" />
                   </div>
                   <h3 className="text-base font-semibold text-slate-900">
-                    Drop single or multiple files here, or{' '}
-                    <span className="text-blue-600 group-hover:underline">browse</span>
+                    Drag & Drop Files, Folders, or 4K Videos here
                   </h3>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Multiple files automatically bundle into a 1-Click ZIP • Up to{' '}
-                    <span className="font-semibold text-slate-700">
-                      {BRAND_CONFIG.maxFreeUserFileSizeMB} MB
-                    </span>
+                  <p className="mt-1.5 text-xs text-slate-500 max-w-md">
+                    Support for single files, multi-file selections, high-res media, and complete folder trees with automatic 1-Click ZIP bundling.
                   </p>
-                  <p className="mt-2 text-[11px] text-slate-400">
-                    Executable formats (.exe, .sh, .bat) are blocked for security.
-                  </p>
+
+                  <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      leftIcon={<UploadCloud className="w-4 h-4" />}
+                    >
+                      Browse Files
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => folderInputRef.current?.click()}
+                      leftIcon={<FolderPlus className="w-4 h-4 text-blue-600" />}
+                    >
+                      Upload Folder
+                    </Button>
+                  </div>
+
+                  <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Real-Time Magic-Byte Anti-Malware & Virus Guard Active</span>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -359,10 +452,10 @@ export function ShareCreator() {
                     <div className="flex items-center gap-2">
                       <FolderArchive className="w-5 h-5 text-blue-600" />
                       <span className="text-xs font-bold text-slate-900">
-                        {selectedFiles.length} {selectedFiles.length === 1 ? 'File' : 'Files Selected'} ({formatBytes(totalFilesSize)})
+                        {selectedFiles.length} {selectedFiles.length === 1 ? 'Item' : 'Items Selected'} ({formatBytes(totalFilesSize)})
                       </span>
                       {selectedFiles.length > 1 && (
-                        <Badge variant="info" size="sm">Auto-ZIP Bundle</Badge>
+                        <Badge variant="info" size="sm">Auto-ZIP Package</Badge>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
@@ -372,7 +465,16 @@ export function ShareCreator() {
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        + Add More
+                        + Files
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => folderInputRef.current?.click()}
+                        leftIcon={<FolderPlus className="w-3.5 h-3.5 text-blue-600" />}
+                      >
+                        + Folder
                       </Button>
                       <Button
                         type="button"
