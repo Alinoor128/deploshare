@@ -439,11 +439,6 @@ export function ShareCreator() {
                       Upload Folder
                     </Button>
                   </div>
-
-                  <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Real-Time Magic-Byte Anti-Malware & Virus Guard Active</span>
-                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
