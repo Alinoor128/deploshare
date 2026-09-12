@@ -96,12 +96,6 @@ export function Navbar() {
             Reviews
           </Link>
           <Link
-            href="/#pricing"
-            className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-all duration-200 hover:scale-105"
-          >
-            Pricing
-          </Link>
-          <Link
             href="/api-docs"
             className={`text-sm font-medium transition-all duration-200 hover:text-blue-600 hover:scale-105 ${
               pathname === '/api-docs' ? 'text-blue-600 font-semibold' : 'text-slate-600'
@@ -213,11 +207,11 @@ export function Navbar() {
             Security & Privacy
           </Link>
           <Link
-            href="/#pricing"
+            href="/#reviews"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-2 py-2 text-base font-medium text-slate-600 hover:text-slate-900"
           >
-            Pricing
+            Reviews
           </Link>
 
           <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">

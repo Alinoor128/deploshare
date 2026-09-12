@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { DeploShareLogo } from '@/components/ui/DeploShareLogo';
-import { BRAND_CONFIG } from '@/lib/config/brand';
 import { ReviewsSection } from '@/components/reviews/ReviewsSection';
 import {
   KeyRound,
@@ -62,8 +61,8 @@ export default function LandingPage() {
       a: 'Yes! DeploShare allows you to attach an optional bcrypt-hashed password to any file or text share. Even with the valid 6-digit code, content remains securely locked until the recipient enters the exact password.',
     },
     {
-      q: 'Is DeploShare free to use for temporary file sharing?',
-      a: 'Yes, DeploShare is 100% free for instant anonymous and registered sharing up to 100MB per file with expiration up to 7 days. For power users needing up to 2GB or 10GB per file and 30–90 days retention, affordable Pro and Business tiers are available.',
+      q: 'Is DeploShare completely free to use?',
+      a: 'Yes! DeploShare is 100% free with zero subscriptions, paywalls, or hidden charges. Anyone can upload, encrypt with AES-256 GCM, and share temporary files or text notes with an unguessable 6-digit code.',
     },
   ];
 
@@ -540,134 +539,6 @@ export default function LandingPage() {
           5. REAL-TIME CUSTOMER REVIEWS SECTION
       ===================================================================== */}
       <ReviewsSection />
-
-      {/* =====================================================================
-          6. PRICING SECTION
-      ===================================================================== */}
-      <section id="pricing" className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12">
-        <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <Badge variant="purple" size="md">
-            Transparent Pricing
-          </Badge>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Simple Plans for Every Need
-          </h2>
-          <p className="text-sm text-slate-500">
-            Start sharing for free, or upgrade for massive file limits and extended retention.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Free Plan */}
-          <Card hoverEffect className="p-8 space-y-6 flex flex-col justify-between">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">
-                  {BRAND_CONFIG.plans.FREE.name}
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Ideal for quick, spontaneous ephemeral file & text shares.
-                </p>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-slate-900">
-                  {BRAND_CONFIG.plans.FREE.price}
-                </span>
-                <span className="text-xs text-slate-400">/ forever</span>
-              </div>
-              <ul className="space-y-2.5 text-xs text-slate-700 pt-2 border-t border-slate-100">
-                {BRAND_CONFIG.plans.FREE.features.map((feat, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>{feat}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <Link href="/share" className="w-full">
-              <Button variant="secondary" shakeOnHover={true} className="w-full">
-                Get Started Free
-              </Button>
-            </Link>
-          </Card>
-
-          {/* Pro Plan (Highlighted) */}
-          <Card
-            glow
-            floating
-            hoverEffect
-            className="p-8 space-y-6 flex flex-col justify-between border-blue-300 ring-2 ring-blue-500/20 relative shadow-xl shadow-blue-500/10"
-          >
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <Badge variant="info" size="sm">
-                Most Popular
-              </Badge>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">
-                  {BRAND_CONFIG.plans.PRO.name}
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  For professionals sending large confidential files securely.
-                </p>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-slate-900">
-                  {BRAND_CONFIG.plans.PRO.price}
-                </span>
-                <span className="text-xs text-slate-400">/ month</span>
-              </div>
-              <ul className="space-y-2.5 text-xs text-slate-700 pt-2 border-t border-slate-100">
-                {BRAND_CONFIG.plans.PRO.features.map((feat, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span>{feat}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <Link href="/signup" className="w-full">
-              <Button variant="glow" shakeOnHover={true} shimmer={true} className="w-full">
-                Upgrade to Pro
-              </Button>
-            </Link>
-          </Card>
-
-          {/* Business Plan */}
-          <Card hoverEffect className="p-8 space-y-6 flex flex-col justify-between">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">
-                  {BRAND_CONFIG.plans.BUSINESS.name}
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  For engineering teams demanding custom governance & SLA.
-                </p>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-slate-900">
-                  {BRAND_CONFIG.plans.BUSINESS.price}
-                </span>
-                <span className="text-xs text-slate-400">/ month</span>
-              </div>
-              <ul className="space-y-2.5 text-xs text-slate-700 pt-2 border-t border-slate-100">
-                {BRAND_CONFIG.plans.BUSINESS.features.map((feat, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <span>{feat}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <Link href="/signup" className="w-full">
-              <Button variant="secondary" shakeOnHover={true} className="w-full">
-                Contact Sales
-              </Button>
-            </Link>
-          </Card>
-        </div>
-      </section>
 
       {/* =====================================================================
           6. FAQ ACCORDION SECTION

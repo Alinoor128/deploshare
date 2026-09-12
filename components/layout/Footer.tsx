@@ -49,8 +49,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/#pricing" className="hover:text-blue-600 transition-colors text-slate-600">
-                  Plans & Pricing (Free & Pro)
+                <Link href="/#reviews" className="hover:text-blue-600 transition-colors text-slate-600">
+                  Verified Customer Reviews
                 </Link>
               </li>
             </ul>
