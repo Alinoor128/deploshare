@@ -21,12 +21,14 @@ import {
   Flame,
   Download,
   Eye,
+  EyeOff,
   KeyRound,
   AlertCircle,
   Trash2,
   FolderArchive,
   FolderPlus,
   ShieldCheck,
+  Sliders,
 } from 'lucide-react';
 
 interface WebkitEntry {
@@ -62,6 +64,7 @@ export function ShareCreator() {
   const [customExpiryUnit, setCustomExpiryUnit] = useState<'hours' | 'days'>('hours');
   const [enablePassword, setEnablePassword] = useState(false);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [maxDownloadsOption, setMaxDownloadsOption] = useState<'unlimited' | '1' | '5' | '10' | '25' | 'custom'>('unlimited');
   const [customMaxDownloads, setCustomMaxDownloads] = useState('50');
   const [burnAfterDownload, setBurnAfterDownload] = useState(false);
@@ -181,6 +184,7 @@ export function ShareCreator() {
     setTextTitle('');
     setTextContent('');
     setPassword('');
+    setShowPassword(false);
     setEnablePassword(false);
     setEnableE2ee(false);
     setE2eeKeyPhrase('');
@@ -567,202 +571,391 @@ export function ShareCreator() {
           )}
 
           {/* ZERO-KNOWLEDGE CLIENT-SIDE E2EE OPTION */}
-          <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-200 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-blue-600" />
-                  Zero-Knowledge Client-Side Encryption (AES-GCM 256)
-                </span>
-                <p className="text-[11px] text-slate-500">
-                  Data encrypts in your browser before upload. Even server admins cannot read it.
-                </p>
+          <div className={`p-4 sm:p-5 rounded-2xl border transition-all duration-300 ${
+            enableE2ee
+              ? 'bg-gradient-to-br from-blue-50/90 via-indigo-50/40 to-blue-50/90 border-blue-300/90 shadow-[0_4px_20px_-4px_rgba(37,99,235,0.12)] ring-1 ring-blue-500/20'
+              : 'bg-white/95 border-slate-200/80 shadow-2xs hover:border-slate-300'
+          }`}>
+            <div className="flex items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                  enableE2ee
+                    ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-400/30'
+                    : 'bg-blue-50 border border-blue-100 text-blue-600'
+                }`}>
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div className="space-y-0.5 text-left">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-slate-900">
+                      Zero-Knowledge Client Encryption
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-blue-100 text-blue-800 border border-blue-200/60">
+                      AES-GCM 256
+                    </span>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-slate-500 max-w-xl">
+                    Data encrypts locally in your browser before upload. Even server admins cannot read it.
+                  </p>
+                </div>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
+
+              <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5 sm:mt-0">
                 <input
                   type="checkbox"
                   checked={enableE2ee}
                   onChange={(e) => setEnableE2ee(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600" />
+                <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner" />
               </label>
             </div>
 
             {enableE2ee && (
-              <Input
-                label="Custom Decryption Key Phrase (Optional)"
-                type="password"
-                placeholder="Leave blank to use share password or enter dedicated key"
-                value={e2eeKeyPhrase}
-                onChange={(e) => setE2eeKeyPhrase(e.target.value)}
-                helperText="If left blank, the share password or PIN will be used as the decryption key."
-              />
+              <div className="mt-3.5 pt-3 border-t border-blue-200/60 animate-fadeIn">
+                <Input
+                  label="Custom Decryption Key Phrase (Optional)"
+                  type="password"
+                  placeholder="Leave blank to use share password or enter dedicated key"
+                  value={e2eeKeyPhrase}
+                  onChange={(e) => setE2eeKeyPhrase(e.target.value)}
+                  helperText="If left blank, the share password or PIN will be used as the decryption key."
+                />
+              </div>
             )}
           </div>
 
           {/* SECURITY & EXPIRATION SETTINGS */}
-          <div className="space-y-4 pt-2 border-t border-slate-200">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700 text-left">
-              Share Security & Constraints
-            </h3>
+          <div className="space-y-4 pt-3 border-t border-slate-200/80">
+            <div className="flex items-center justify-between text-left">
+              <div className="space-y-0.5">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                  <Sliders className="w-3 h-3 text-blue-600" />
+                  Security & Constraints Suite
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                  Share Security & Constraints
+                </h3>
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono hidden sm:inline-block">
+                Hardware-Grade Controls
+              </span>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-              {/* Expiration Timer Selection */}
-              <div className="space-y-2">
-                <label className="block text-xs font-medium text-slate-700 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-blue-600" />
-                  Expiration Time
-                </label>
-                <select
-                  value={expiryOption}
-                  onChange={(e) => setExpiryOption(e.target.value)}
-                  className="w-full rounded-xl bg-white border border-slate-200 py-2.5 px-3.5 text-xs text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-2xs"
-                >
-                  <option value="600">10 Minutes (Ultra Fast)</option>
-                  <option value="3600">1 Hour</option>
-                  <option value="86400">24 Hours (Standard)</option>
-                  <option value="259200">3 Days</option>
-                  <option value="604800">7 Days (Free Max)</option>
-                  <option value="custom">Custom Timer...</option>
-                </select>
-
-                {expiryOption === 'custom' && (
-                  <div className="flex gap-2 mt-2">
-                    <input
-                      type="number"
-                      min="1"
-                      max="30"
-                      value={customExpiryValue}
-                      onChange={(e) => setCustomExpiryValue(e.target.value)}
-                      className="w-20 rounded-xl bg-white border border-slate-200 py-2 px-3 text-xs text-slate-900"
-                    />
-                    <select
-                      value={customExpiryUnit}
-                      onChange={(e) => setCustomExpiryUnit(e.target.value as 'hours' | 'days')}
-                      className="flex-1 rounded-xl bg-white border border-slate-200 py-2 px-3 text-xs text-slate-900"
-                    >
-                      <option value="hours">Hours</option>
-                      <option value="days">Days</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              {/* Password Protection */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-medium text-slate-700 flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-blue-600" />
-                    Bcrypt Password Lock
-                  </label>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={enablePassword}
-                      onChange={(e) => setEnablePassword(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600" />
-                  </label>
-                </div>
-
-                {enablePassword ? (
-                  <Input
-                    type="password"
-                    placeholder="Enter decryption password..."
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoFocus
-                  />
-                ) : (
-                  <p className="text-xs text-slate-500 pt-1">
-                    Anyone with the 6-digit code can access. Enable to require an extra password.
-                  </p>
-                )}
-              </div>
-
-              {/* Max Downloads Limit */}
-              <div className="space-y-2">
-                <label className="block text-xs font-medium text-slate-700 flex items-center gap-1.5">
-                  <Download className="w-3.5 h-3.5 text-blue-600" />
-                  Download Limit
-                </label>
-                <select
-                  value={maxDownloadsOption}
-                  onChange={(e) =>
-                    setMaxDownloadsOption(
-                      e.target.value as 'unlimited' | '1' | '5' | '10' | '25' | 'custom'
-                    )
-                  }
-                  className="w-full rounded-xl bg-white border border-slate-200 py-2.5 px-3.5 text-xs text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-2xs"
-                >
-                  <option value="unlimited">Unlimited (Until expired)</option>
-                  <option value="1">1 Download (Single recipient)</option>
-                  <option value="5">5 Downloads</option>
-                  <option value="10">10 Downloads</option>
-                  <option value="25">25 Downloads</option>
-                  <option value="custom">Custom limit...</option>
-                </select>
-
-                {maxDownloadsOption === 'custom' && (
-                  <input
-                    type="number"
-                    min="1"
-                    max="500"
-                    value={customMaxDownloads}
-                    onChange={(e) => setCustomMaxDownloads(e.target.value)}
-                    placeholder="Enter maximum download count"
-                    className="w-full mt-2 rounded-xl bg-white border border-slate-200 py-2 px-3 text-xs text-slate-900"
-                  />
-                )}
-              </div>
-
-              {/* Burn & Allow Download Controls */}
-              <div className="space-y-3">
-                {/* Burn After Access / First Download */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <div className="space-y-0.5">
-                    <span className="text-xs font-medium text-slate-800 flex items-center gap-1.5">
-                      <Flame className="w-3.5 h-3.5 text-amber-600" />
-                      Burn on First Download
-                    </span>
-                    <p className="text-[11px] text-slate-500">
-                      Permanently shred from cloud storage immediately after first download.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={burnAfterDownload}
-                      onChange={(e) => setBurnAfterDownload(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500" />
-                  </label>
-                </div>
-
-                {/* Allow Download vs View Only */}
-                {activeTab === 'file' && (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
-                    <div className="space-y-0.5">
-                      <span className="text-xs font-medium text-slate-800 flex items-center gap-1.5">
-                        <Eye className="w-3.5 h-3.5 text-blue-600" />
-                        Allow File Download
-                      </span>
-                      <p className="text-[11px] text-slate-500">
-                        {allowDownload ? 'Recipients can download file.' : 'In-browser view only.'}
-                      </p>
+              {/* Left Column: Expiration & Password */}
+              <div className="space-y-4">
+                {/* Expiration Timer Card */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-white/95 border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 block">Expiration Time</span>
+                        <span className="text-[11px] text-slate-500">Auto-destruct schedule</span>
+                      </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                      {expiryOption === '600' && '10 Min'}
+                      {expiryOption === '3600' && '1 Hour'}
+                      {expiryOption === '86400' && '24 Hours'}
+                      {expiryOption === '259200' && '3 Days'}
+                      {expiryOption === '604800' && '7 Days'}
+                      {expiryOption === 'custom' && `${customExpiryValue} ${customExpiryUnit}`}
+                    </span>
+                  </div>
+
+                  {/* Segmented Preset Chips */}
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 p-1 bg-slate-100/80 rounded-xl border border-slate-200/60">
+                    {[
+                      { id: '600', label: '10m' },
+                      { id: '3600', label: '1h' },
+                      { id: '86400', label: '24h' },
+                      { id: '259200', label: '3d' },
+                      { id: '604800', label: '7d' },
+                      { id: 'custom', label: 'Custom' },
+                    ].map((preset) => {
+                      const isActive = expiryOption === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setExpiryOption(preset.id)}
+                          className={`py-1.5 px-1 text-xs rounded-lg font-medium transition-all text-center ${
+                            isActive
+                              ? 'bg-white text-blue-600 font-bold shadow-xs border border-blue-200/60 ring-1 ring-blue-500/10'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {expiryOption === 'custom' && (
+                    <div className="flex items-center gap-2 pt-1 animate-fadeIn">
+                      <input
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={customExpiryValue}
+                        onChange={(e) => setCustomExpiryValue(e.target.value)}
+                        className="w-24 rounded-xl bg-slate-50 border border-slate-200 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        placeholder="Duration"
+                      />
+                      <select
+                        value={customExpiryUnit}
+                        onChange={(e) => setCustomExpiryUnit(e.target.value as 'hours' | 'days')}
+                        className="flex-1 rounded-xl bg-slate-50 border border-slate-200 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-600 focus:outline-none"
+                      >
+                        <option value="hours">Hours</option>
+                        <option value="days">Days</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bcrypt Password Lock Card */}
+                <div className={`p-4 sm:p-5 rounded-2xl border transition-all duration-300 space-y-3 ${
+                  enablePassword
+                    ? 'bg-gradient-to-br from-indigo-50/70 via-white to-purple-50/40 border-indigo-300 shadow-sm ring-1 ring-indigo-500/20'
+                    : 'bg-white/95 border-slate-200/80 shadow-2xs hover:border-slate-300'
+                }`}>
+                  <div className="flex items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        enablePassword
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'bg-indigo-50 border border-indigo-100 text-indigo-600'
+                      }`}>
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-900">Bcrypt Password Lock</span>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-purple-100 text-purple-800 border border-purple-200/60">
+                            Bcrypt
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-500">Require an extra password</span>
+                      </div>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
                       <input
                         type="checkbox"
-                        checked={allowDownload}
-                        onChange={(e) => setAllowDownload(e.target.checked)}
+                        checked={enablePassword}
+                        onChange={(e) => setEnablePassword(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600" />
+                      <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600 shadow-inner" />
                     </label>
+                  </div>
+
+                  {enablePassword ? (
+                    <div className="pt-2 animate-fadeIn space-y-1.5">
+                      <div className="relative flex items-center">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Enter decryption password..."
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full rounded-xl bg-white border border-indigo-200 py-2.5 pl-3.5 pr-10 text-xs text-slate-900 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-2xs"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 text-slate-400 hover:text-slate-600 transition-colors"
+                          title={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-indigo-700 font-medium">
+                        Recipient must provide this password in addition to the 6-digit PIN.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                      Anyone with the 6-digit code can access. Enable to require an extra password.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: Download Limit, Burn on Download, Allow Download */}
+              <div className="space-y-4">
+                {/* Download Limit Card */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-white/95 border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-600 shadow-2xs">
+                        <Download className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 block">Download Limit</span>
+                        <span className="text-[11px] text-slate-500">Maximum allowed downloads</span>
+                      </div>
+                    </div>
+
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/60">
+                      {maxDownloadsOption === 'unlimited' && 'Unlimited'}
+                      {maxDownloadsOption === '1' && '1 DL Only'}
+                      {maxDownloadsOption === '5' && '5 DL'}
+                      {maxDownloadsOption === '10' && '10 DL'}
+                      {maxDownloadsOption === '25' && '25 DL'}
+                      {maxDownloadsOption === 'custom' && `Custom (${customMaxDownloads})`}
+                    </span>
+                  </div>
+
+                  {/* Segmented Preset Chips */}
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 p-1 bg-slate-100/80 rounded-xl border border-slate-200/60">
+                    {(
+                      [
+                        { id: 'unlimited', label: '∞' },
+                        { id: '1', label: '1' },
+                        { id: '5', label: '5' },
+                        { id: '10', label: '10' },
+                        { id: '25', label: '25' },
+                        { id: 'custom', label: 'Custom' },
+                      ] as const
+                    ).map((preset) => {
+                      const isActive = maxDownloadsOption === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setMaxDownloadsOption(preset.id)}
+                          className={`py-1.5 px-1 text-xs rounded-lg font-medium transition-all text-center ${
+                            isActive
+                              ? 'bg-white text-blue-600 font-bold shadow-xs border border-blue-200/60 ring-1 ring-blue-500/10'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {maxDownloadsOption === 'custom' && (
+                    <div className="pt-1 animate-fadeIn">
+                      <input
+                        type="number"
+                        min="1"
+                        max="500"
+                        value={customMaxDownloads}
+                        onChange={(e) => setCustomMaxDownloads(e.target.value)}
+                        placeholder="Enter maximum download count"
+                        className="w-full rounded-xl bg-slate-50 border border-slate-200 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Burn on First Download (Auto-Destruct Shredder) */}
+                <div className={`p-4 sm:p-5 rounded-2xl border transition-all duration-300 ${
+                  burnAfterDownload
+                    ? 'bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/10 border-amber-400 shadow-[0_4px_20px_-4px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30'
+                    : 'bg-white/95 border-slate-200/80 shadow-2xs hover:border-amber-200/80'
+                }`}>
+                  <div className="flex items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                        burnAfterDownload
+                          ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-sm ring-2 ring-amber-400/40 animate-pulse'
+                          : 'bg-amber-50 border border-amber-100 text-amber-600'
+                      }`}>
+                        <Flame className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs sm:text-sm font-bold text-slate-900">
+                            Burn on First Download
+                          </span>
+                          {burnAfterDownload ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white shadow-2xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                              SHRED ARMED
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                              Off
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] sm:text-xs text-slate-500">
+                          Permanently shred and zero-wipe payload from cloud storage immediately after first download.
+                        </p>
+                      </div>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5 sm:mt-0">
+                      <input
+                        type="checkbox"
+                        checked={burnAfterDownload}
+                        onChange={(e) => setBurnAfterDownload(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-amber-500 peer-checked:to-orange-500 shadow-inner" />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Allow File Download (Binary vs View Only) */}
+                {activeTab === 'file' && (
+                  <div className={`p-4 sm:p-5 rounded-2xl border transition-all duration-300 ${
+                    allowDownload
+                      ? 'bg-gradient-to-br from-blue-50/50 via-white to-slate-50 border-blue-200/90 shadow-2xs'
+                      : 'bg-slate-50/80 border-slate-200/90 shadow-2xs'
+                  }`}>
+                    <div className="flex items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                          allowDownload
+                            ? 'bg-blue-50 border border-blue-100 text-blue-600 shadow-2xs'
+                            : 'bg-slate-100 border border-slate-200 text-slate-500'
+                        }`}>
+                          <Eye className="w-5 h-5" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs sm:text-sm font-bold text-slate-900">
+                              Allow File Download
+                            </span>
+                            {allowDownload ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                                Download Allowed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/70">
+                                Browser View Only
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] sm:text-xs text-slate-500">
+                            {allowDownload
+                              ? 'Recipients can download and save files directly.'
+                              : 'Recipients can only preview files inside the browser; download blocked.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5 sm:mt-0">
+                        <input
+                          type="checkbox"
+                          checked={allowDownload}
+                          onChange={(e) => setAllowDownload(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner" />
+                      </label>
+                    </div>
                   </div>
                 )}
               </div>
