@@ -417,10 +417,10 @@ export function ShareCreator() {
                     <UploadCloud className="h-8 w-8" />
                   </div>
                   <h3 className="text-base font-semibold text-slate-900">
-                    Drag & Drop Files, Folders, or 4K Videos here
+                    Drop your files here
                   </h3>
                   <p className="mt-1.5 text-xs text-slate-500 max-w-md">
-                    Support for single files, multi-file selections, high-res media, and complete folder trees with automatic 1-Click ZIP bundling.
+                    or choose a file from your device (folders & large media supported)
                   </p>
 
                   <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
@@ -431,7 +431,7 @@ export function ShareCreator() {
                       onClick={() => fileInputRef.current?.click()}
                       leftIcon={<UploadCloud className="w-4 h-4" />}
                     >
-                      Browse Files
+                      Choose File
                     </Button>
                     <Button
                       type="button"

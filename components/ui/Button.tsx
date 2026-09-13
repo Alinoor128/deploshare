@@ -57,7 +57,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       icon: 'p-2.5 text-sm',
     };
 
-    const isWobbleActive = shakeOnHover || variant === 'glow' || variant === 'primary';
+    const isWobbleActive = Boolean(shakeOnHover);
     const isShimmerActive = shimmer || variant === 'glow';
 
     return (

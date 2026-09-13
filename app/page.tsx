@@ -18,7 +18,6 @@ import {
   ChevronDown,
   Shield,
   EyeOff,
-  Zap,
   XCircle,
 } from 'lucide-react';
 
@@ -42,7 +41,7 @@ export default function LandingPage() {
   const faqs = [
     {
       q: 'How does code-only temporary file sharing work on DeploShare?',
-      a: 'When you upload a file or write a text note on DeploShare (also searched as Deplo Share), our cryptographic engine generates a unique 6-digit numeric PIN (e.g. 583214). You simply share this 6-digit PIN with your recipient. They visit DeploShare, punch in the 6 digits on any phone or desktop, and immediately access the content without any public URL being indexed or leaked.',
+      a: 'When you upload a file or write a text note on DeploShare, our cryptographic engine generates a unique 6-digit numeric PIN (e.g. 583214). You simply share this 6-digit PIN with your recipient. They visit DeploShare, punch in the 6 digits on any phone or desktop, and immediately access the content without any public URL being indexed or leaked.',
     },
     {
       q: 'Why is 6-digit code sharing safer than traditional link file sharing?',
@@ -80,21 +79,21 @@ export default function LandingPage() {
       ===================================================================== */}
       <section className="pt-16 sm:pt-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-8">
         {/* Top Feature Pill */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold shadow-xs">
-          <Shield className="w-3.5 h-3.5 text-blue-600" />
-          <span>The Modern Standard for Temporary File & Text Sharing</span>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50/90 border border-blue-200/80 text-blue-700 text-xs font-semibold shadow-xs">
+          <span className="flex h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
+          <span>100% FREE • NO LOGIN REQUIRED</span>
         </div>
 
         {/* Hero Title */}
         <div className="space-y-4 max-w-4xl mx-auto">
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-slate-900 tracking-tight leading-[1.1]">
-            Temporary File Share With{' '}
-            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 bg-clip-text text-transparent">
-              Just a 6-Digit Code
+            Share files.{' '}
+            <span className="block sm:inline bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 bg-clip-text text-transparent">
+              No Login. No Cost.
             </span>
           </h1>
-          <p className="text-base sm:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-            Welcome to <strong className="text-slate-900 font-bold">DeploShare</strong>. Upload your files or confidential text notes, generate an instant <span className="text-blue-600 font-bold font-mono">6-digit PIN</span>, and share with zero permanent URL leakage. Ephemeral, encrypted, and burnable on first download.
+          <p className="text-base sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed font-normal">
+            Upload your file, get a shareable link, and send it anywhere. Simple, fast, and completely free.
           </p>
         </div>
 
@@ -104,90 +103,111 @@ export default function LandingPage() {
             <Button
               variant="glow"
               size="lg"
-              shakeOnHover={true}
               shimmer={true}
-              className="w-full sm:w-auto px-9 text-base"
+              className="w-full sm:w-auto px-9 text-base font-semibold shadow-lg shadow-blue-500/25"
               leftIcon={<UploadCloud className="w-5 h-5" />}
             >
-              Upload & Share File
+              Upload a File
             </Button>
           </Link>
           <Link href="/access" className="w-full sm:w-auto">
             <Button
               variant="secondary"
               size="lg"
-              shakeOnHover={true}
-              className="w-full sm:w-auto px-9 text-base border-slate-200 hover:border-blue-400"
+              className="w-full sm:w-auto px-9 text-base font-semibold border-slate-200/90 hover:border-blue-400 hover:text-blue-600"
               leftIcon={<KeyRound className="w-5 h-5 text-blue-600" />}
             >
-              Enter 6-Digit Code
+              Enter Share Code
             </Button>
           </Link>
         </div>
 
-        {/* INTERACTIVE 6-DIGIT CODE LIVE DEMO */}
+        {/* MODERN HERO UPLOAD & PREVIEW CARD */}
         <div className="pt-8 max-w-3xl mx-auto">
-          <Card glow floating className="p-6 sm:p-8 bg-white border-slate-200 text-left space-y-6 shadow-xl shadow-blue-500/5">
+          <Card glow className="p-6 sm:p-8 bg-white/95 border-slate-200/90 text-left space-y-6 shadow-2xl shadow-blue-500/10 rounded-3xl">
+            {/* Top Bar */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-red-400" />
-                <div className="h-3 w-3 rounded-full bg-amber-400" />
-                <div className="h-3 w-3 rounded-full bg-emerald-400" />
-                <span className="text-xs text-slate-500 ml-2 font-mono">
-                  deploshare-secure-gateway.sh
+                <div className="h-3 w-3 rounded-full bg-red-400/80" />
+                <div className="h-3 w-3 rounded-full bg-amber-400/80" />
+                <div className="h-3 w-3 rounded-full bg-emerald-400/80" />
+                <span className="text-xs text-slate-500 ml-2 font-medium">
+                  Instant File Transfer
                 </span>
               </div>
               <Badge variant="info" size="sm">
-                No URLs • Pure 6-Digit PIN
+                Fast • Secure • Ephemeral
               </Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center text-center">
-              {/* Step 1 */}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 hover:border-blue-300 transition-colors">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 mx-auto border border-blue-100">
-                  <UploadCloud className="w-5 h-5" />
+            {/* Main Interactive Dropzone & 6-Digit Code Preview */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+              {/* Dropzone Area (3 cols) */}
+              <Link
+                href="/share"
+                className="md:col-span-3 group block p-6 rounded-2xl border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/70 hover:bg-blue-50/40 transition-all duration-200 text-center space-y-3 cursor-pointer"
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-blue-600 mx-auto border border-blue-100 shadow-xs group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all duration-200 animate-float">
+                  <UploadCloud className="w-7 h-7" />
                 </div>
-                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                  1. Drop File or Text
-                </h4>
-                <p className="text-[11px] text-slate-500">
-                  Select confidential file or paste sensitive notes
-                </p>
-              </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                    Drop your files here
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    or choose a file from your device
+                  </p>
+                </div>
+                <div className="pt-1">
+                  <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold shadow-xs group-hover:bg-blue-700 transition-colors">
+                    <UploadCloud className="w-3.5 h-3.5" />
+                    Choose File
+                  </span>
+                </div>
+              </Link>
 
-              {/* Animated Connection Arrow */}
-              <div className="hidden md:flex justify-center text-blue-600">
-                <ArrowRight className="w-6 h-6 animate-pulse" />
-              </div>
-
-              {/* Step 2 (Dynamic 6-digit Code Box) */}
-              <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-200 space-y-2 shadow-sm">
-                <div className="flex items-center justify-center gap-1 font-mono text-xl sm:text-2xl font-black text-blue-600 tracking-widest transition-all duration-300">
+              {/* Dynamic 6-digit Code Box (2 cols) */}
+              <div className="md:col-span-2 p-5 rounded-2xl bg-gradient-to-b from-blue-50/80 to-indigo-50/50 border border-blue-200/80 space-y-3 text-center shadow-xs">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-blue-800">
+                  Instant 6-Digit Share Code
+                </div>
+                <div className="flex items-center justify-center gap-1.5 font-mono text-xl sm:text-2xl font-black text-blue-600 tracking-widest transition-all duration-300 py-1">
                   {currentDemoCode.split('').map((char, i) => (
                     <span
                       key={i}
-                      className="inline-block px-1.5 py-0.5 rounded-lg bg-white border border-blue-200 text-blue-700 shadow-2xs"
+                      className="inline-block px-2 py-1 rounded-xl bg-white border border-blue-200 text-blue-700 shadow-2xs"
                     >
                       {char}
                     </span>
                   ))}
                 </div>
-                <h4 className="text-xs font-bold text-blue-800 uppercase tracking-wider">
-                  2. Share 6-Digit Code
-                </h4>
-                <p className="text-[11px] text-slate-500">
-                  Recipient types PIN to decrypt & download
+                <p className="text-[11px] text-slate-500 leading-tight">
+                  Recipients enter code to instantly download
                 </p>
+                <Link
+                  href="/access"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline pt-1"
+                >
+                  <span>Enter Code Demo</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
-              <span className="flex items-center gap-1.5 text-slate-600">
-                <Zap className="w-3.5 h-3.5 text-amber-500" />
-                Instant 60-Second Signed Download URLs
-              </span>
-              <span className="font-mono text-blue-600 font-semibold">deploshare.com/access</span>
+            {/* Bottom Value Props */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100 text-xs text-slate-600">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>No signup required</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-blue-500 shrink-0" />
+                <span>Auto-expires securely</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-indigo-500 shrink-0" />
+                <span>End-to-end encrypted</span>
+              </div>
             </div>
           </Card>
         </div>
