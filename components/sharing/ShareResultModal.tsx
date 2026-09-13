@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { BRAND_CONFIG } from '@/lib/config/brand';
 import {
@@ -116,31 +115,30 @@ export function ShareResultModal({
       onClose={onClose}
       maxWidth="lg"
       showCloseButton={true}
-      title="Share Created Successfully"
+      title="Your file is ready"
     >
       <div className="space-y-6 text-center py-2">
-        {/* Subtitle */}
-        <p className="text-sm text-slate-500">
-          Your content has been encrypted and assigned a unique 6-digit access code.
-        </p>
-
-        {/* 6-DIGIT CODE DISPLAY */}
-        <div className="relative overflow-hidden rounded-2xl bg-blue-50/60 border-2 border-blue-200 p-6 sm:p-8 shadow-md shadow-blue-500/5">
-          <div className="absolute top-2.5 right-3">
-            <Badge variant="info" size="sm">
-              6-Digit Code Only
-            </Badge>
+        {/* Success Icon & Subtitle */}
+        <div className="space-y-2">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/80 shadow-xs mx-auto">
+            <Check className="w-7 h-7 stroke-[2.5]" />
           </div>
+          <p className="text-sm text-slate-500 max-w-sm mx-auto">
+            Your file has been secured and assigned a unique 6-digit access code.
+          </p>
+        </div>
 
-          <span className="text-xs uppercase font-semibold tracking-widest text-slate-500 block mb-2">
-            Your Access Code
+        {/* 6-DIGIT SHARE CODE PRESENTATION */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-blue-50/70 via-white to-blue-50/40 border-2 border-blue-200 p-6 sm:p-8 shadow-sm">
+          <span className="text-xs uppercase font-extrabold tracking-widest text-slate-500 block mb-3">
+            YOUR SHARE CODE
           </span>
 
-          <div className="flex items-center justify-center gap-2 sm:gap-3 my-3">
+          <div className="flex items-center justify-center gap-2 sm:gap-3.5 my-3">
             {shareCode.split('').map((digit, index) => (
               <span
                 key={index}
-                className="flex h-14 w-11 sm:h-16 sm:w-14 items-center justify-center rounded-2xl bg-white border border-blue-200 font-mono text-3xl sm:text-4xl font-black text-blue-700 shadow-sm select-all"
+                className="flex h-14 w-11 sm:h-16 sm:w-14 items-center justify-center rounded-2xl bg-white border-2 border-blue-200 font-mono text-3xl sm:text-4xl font-black text-blue-700 shadow-xs select-all hover:scale-105 transition-transform"
               >
                 {digit}
               </span>
@@ -206,16 +204,16 @@ export function ShareResultModal({
             onClick={handleCopyCode}
             leftIcon={copied ? <Check className="w-5 h-5 text-emerald-600" /> : <Copy className="w-5 h-5" />}
           >
-            {copied ? 'Code Copied!' : 'Copy 6-Digit Code'}
+            {copied ? 'Copied ✓' : 'Copy Share Code'}
           </Button>
 
           <Button
             variant="secondary"
             size="lg"
-            onClick={handleNativeShare}
-            leftIcon={<Share2 className="w-5 h-5 text-indigo-600" />}
+            onClick={() => setQrOpen(true)}
+            leftIcon={<QrCode className="w-5 h-5 text-slate-600" />}
           >
-            Share Code
+            Show QR
           </Button>
         </div>
 
@@ -224,10 +222,10 @@ export function ShareResultModal({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setQrOpen(true)}
-            leftIcon={<QrCode className="w-4 h-4 text-slate-500" />}
+            onClick={handleNativeShare}
+            leftIcon={<Share2 className="w-4 h-4 text-indigo-600" />}
           >
-            Show QR Code
+            Share Link
           </Button>
 
           <Link href={`/access?code=${shareCode}`} target="_blank">

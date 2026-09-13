@@ -15,6 +15,10 @@ import {
   UploadCloud,
   FileText,
   File as FileIcon,
+  FileImage,
+  FileVideo,
+  FileAudio,
+  FileCode,
   X,
   Lock,
   Clock,
@@ -29,7 +33,47 @@ import {
   FolderPlus,
   ShieldCheck,
   Sliders,
+  RefreshCw,
 } from 'lucide-react';
+
+function getFileIcon(fileName: string, mimeType?: string) {
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  if (mimeType?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
+    return <FileImage className="w-4 h-4 text-purple-600 shrink-0" />;
+  }
+  if (mimeType?.startsWith('video/') || ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) {
+    return <FileVideo className="w-4 h-4 text-rose-600 shrink-0" />;
+  }
+  if (mimeType?.startsWith('audio/') || ['mp3', 'wav', 'ogg', 'm4a', 'flac'].includes(ext)) {
+    return <FileAudio className="w-4 h-4 text-amber-600 shrink-0" />;
+  }
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+    return <FolderArchive className="w-4 h-4 text-emerald-600 shrink-0" />;
+  }
+  if (['js', 'ts', 'jsx', 'tsx', 'py', 'html', 'css', 'json', 'c', 'cpp', 'rs', 'go', 'php'].includes(ext)) {
+    return <FileCode className="w-4 h-4 text-cyan-600 shrink-0" />;
+  }
+  if (['pdf', 'doc', 'docx', 'txt', 'md', 'rtf'].includes(ext)) {
+    return <FileText className="w-4 h-4 text-blue-600 shrink-0" />;
+  }
+  return <FileIcon className="w-4 h-4 text-slate-600 shrink-0" />;
+}
+
+function getSafeErrorMessage(error: string): string {
+  if (!error) return 'Please try again.';
+  if (
+    error.includes('supabase') ||
+    error.includes('Postgres') ||
+    error.includes('PGRST') ||
+    error.includes('relation') ||
+    error.includes('stack') ||
+    error.includes('SQL') ||
+    error.includes('Error:')
+  ) {
+    return 'A temporary service error occurred. Please try again.';
+  }
+  return error;
+}
 
 interface WebkitEntry {
   isFile: boolean;
@@ -338,11 +382,29 @@ export function ShareCreator() {
           Create a New Share
         </h1>
         <p className="text-sm text-slate-500 max-w-lg mx-auto">
-          Upload single/multiple files or paste text to generate a secure, temporary 6-digit numeric code.
+          Upload files or paste text to generate a secure, temporary 6-digit share code.
         </p>
       </div>
 
-      <Card glow className="p-6 sm:p-8 bg-white border-slate-200 shadow-xl shadow-blue-500/5">
+      {/* 3-Step Micro Process Flow */}
+      <div className="flex items-center justify-center gap-2 sm:gap-4 text-xs font-medium text-slate-500 pb-1">
+        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 font-semibold shadow-2xs">
+          <span className="flex h-4 w-4 rounded-full bg-blue-600 text-white text-[10px] items-center justify-center font-bold">1</span>
+          Drop a file
+        </span>
+        <span className="text-slate-300 select-none">→</span>
+        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+          <span className="flex h-4 w-4 rounded-full bg-slate-300 text-slate-700 text-[10px] items-center justify-center font-bold">2</span>
+          Upload
+        </span>
+        <span className="text-slate-300 select-none">→</span>
+        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+          <span className="flex h-4 w-4 rounded-full bg-slate-300 text-slate-700 text-[10px] items-center justify-center font-bold">3</span>
+          Get a share code
+        </span>
+      </div>
+
+      <Card glow className="p-6 sm:p-8 bg-white border-slate-200/90 shadow-xl shadow-blue-500/5 rounded-3xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Main Tab Selection */}
           <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200">
@@ -407,38 +469,63 @@ export function ShareCreator() {
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 sm:p-12 text-center transition-all duration-200 ${
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Drop your files here or click Choose Files"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                  className={`group relative flex flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 sm:p-14 text-center transition-all duration-200 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
                     dragOver
-                      ? 'border-blue-500 bg-blue-50/50 scale-[1.01]'
-                      : 'border-slate-300 hover:border-blue-400 bg-slate-50/60 hover:bg-blue-50/30'
+                      ? 'border-blue-500 bg-blue-50/70 scale-[1.01] ring-4 ring-blue-500/10 shadow-lg shadow-blue-500/10'
+                      : 'border-slate-300/90 hover:border-blue-400 bg-gradient-to-b from-slate-50/70 via-white to-slate-50/50 hover:bg-blue-50/20 shadow-xs'
                   }`}
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-200 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all duration-200 mb-4 shadow-sm">
-                    <UploadCloud className="h-8 w-8" />
+                  <div
+                    className={`flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-200/80 shadow-xs mb-4 transition-all duration-200 ${
+                      dragOver
+                        ? 'scale-110 bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                        : 'group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white animate-float'
+                    }`}
+                  >
+                    <UploadCloud className="h-8 w-8 sm:h-10 sm:w-10 transition-transform duration-200" />
                   </div>
-                  <h3 className="text-base font-semibold text-slate-900">
-                    Drop your files here
+
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 transition-colors group-hover:text-blue-600">
+                    {dragOver ? 'Drop it here' : 'Drop your files here'}
                   </h3>
-                  <p className="mt-1.5 text-xs text-slate-500 max-w-md">
-                    or choose a file from your device (folders & large media supported)
+
+                  <p className="mt-1 text-xs sm:text-sm text-slate-500 max-w-sm">
+                    {dragOver
+                      ? 'Release to upload immediately'
+                      : 'or choose files from your device'}
                   </p>
 
-                  <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+                  <div
+                    className="flex flex-wrap items-center justify-center gap-3 mt-5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Button
                       type="button"
                       variant="primary"
-                      size="sm"
+                      size="md"
                       onClick={() => fileInputRef.current?.click()}
                       leftIcon={<UploadCloud className="w-4 h-4" />}
+                      className="shadow-sm font-semibold"
                     >
-                      Choose File
+                      Choose Files
                     </Button>
                     <Button
                       type="button"
                       variant="secondary"
-                      size="sm"
+                      size="md"
                       onClick={() => folderInputRef.current?.click()}
                       leftIcon={<FolderPlus className="w-4 h-4 text-blue-600" />}
+                      className="border-slate-200 hover:border-blue-400 font-semibold"
                     >
                       Upload Folder
                     </Button>
@@ -447,22 +534,33 @@ export function ShareCreator() {
               ) : (
                 <div className="space-y-3">
                   {/* Top Bar with Bundle Summary */}
-                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <FolderArchive className="w-5 h-5 text-blue-600" />
-                      <span className="text-xs font-bold text-slate-900">
-                        {selectedFiles.length} {selectedFiles.length === 1 ? 'Item' : 'Items Selected'} ({formatBytes(totalFilesSize)})
-                      </span>
-                      {selectedFiles.length > 1 && (
-                        <Badge variant="info" size="sm">Auto-ZIP Package</Badge>
-                      )}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200/90 shadow-2xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shrink-0">
+                        <FolderArchive className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs sm:text-sm font-bold text-slate-900">
+                            {selectedFiles.length} {selectedFiles.length === 1 ? 'File Selected' : 'Files Selected'}
+                          </span>
+                          {selectedFiles.length > 1 && (
+                            <Badge variant="info" size="sm">Auto-ZIP Package</Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-500">
+                          Total size: {formatBytes(totalFilesSize)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 self-end sm:self-center">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
+                        leftIcon={<UploadCloud className="w-3.5 h-3.5" />}
+                        aria-label="Add more files"
                       >
                         + Files
                       </Button>
@@ -472,6 +570,7 @@ export function ShareCreator() {
                         size="sm"
                         onClick={() => folderInputRef.current?.click()}
                         leftIcon={<FolderPlus className="w-3.5 h-3.5 text-blue-600" />}
+                        aria-label="Add folder"
                       >
                         + Folder
                       </Button>
@@ -481,6 +580,7 @@ export function ShareCreator() {
                         size="sm"
                         onClick={handleClearAllFiles}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        aria-label="Clear all files"
                       >
                         Clear All
                       </Button>
@@ -488,18 +588,18 @@ export function ShareCreator() {
                   </div>
 
                   {/* Individual Files List */}
-                  <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                  <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
                     {selectedFiles.map((f, i) => (
                       <div
                         key={i}
-                        className="flex items-center justify-between rounded-xl bg-white border border-slate-200 p-3 shadow-2xs"
+                        className="flex items-center justify-between rounded-xl bg-white border border-slate-200/90 p-3 shadow-2xs hover:border-blue-200 transition-colors"
                       >
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 border border-blue-100">
-                            <FileIcon className="h-4 w-4" />
+                        <div className="flex items-center gap-3 overflow-hidden min-w-0 pr-2">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-100">
+                            {getFileIcon(f.name, f.type)}
                           </div>
-                          <div className="overflow-hidden">
-                            <h4 className="text-xs font-semibold text-slate-900 truncate max-w-sm">
+                          <div className="overflow-hidden min-w-0">
+                            <h4 className="text-xs sm:text-sm font-semibold text-slate-900 truncate" title={f.name}>
                               {f.name}
                             </h4>
                             <p className="text-[11px] text-slate-400">
@@ -510,7 +610,9 @@ export function ShareCreator() {
                         <button
                           type="button"
                           onClick={() => handleRemoveFile(i)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          aria-label={`Remove file ${f.name}`}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                          title="Remove file"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -962,33 +1064,86 @@ export function ShareCreator() {
             </div>
           </div>
 
-          {/* Error Banner */}
+          {/* Clean Error State */}
           {errorMessage && (
-            <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-              <span>{errorMessage}</span>
+            <div
+              className="rounded-2xl bg-red-50/95 border border-red-200/90 p-4 sm:p-5 text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn shadow-xs"
+              role="alert"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-red-100 text-red-600 shrink-0 mt-0.5">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="text-sm font-bold text-red-900">
+                    Upload couldn&apos;t be completed
+                  </h4>
+                  <p className="text-xs text-red-700 leading-relaxed">
+                    {getSafeErrorMessage(errorMessage)}
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setErrorMessage(null)}
+                leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+                className="shrink-0 border-red-200 text-red-700 hover:bg-red-100 hover:border-red-300"
+              >
+                Try Again
+              </Button>
             </div>
           )}
 
-          {/* Upload Progress Bar */}
+          {/* Upload Progress Card */}
           {isSubmitting && (
-            <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-200 space-y-2.5 animate-fadeIn">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-slate-700 flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-blue-600 animate-ping" />
-                  {progressStatus}
-                </span>
-                <span className="font-mono font-bold text-blue-600">{uploadProgress}%</span>
+            <div
+              className="p-5 rounded-2xl bg-gradient-to-b from-blue-50/90 via-white to-indigo-50/50 border border-blue-200/90 space-y-3 animate-fadeIn shadow-xs"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2 w-2 rounded-full bg-blue-600 animate-ping" />
+                    <span className="text-xs uppercase font-bold tracking-wider text-blue-800">
+                      Uploading...
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 truncate">
+                    {activeTab === 'file'
+                      ? selectedFiles.length > 1
+                        ? `${selectedFiles.length} files (archive.zip)`
+                        : selectedFiles[0]?.name || 'file'
+                      : textTitle || 'Encrypted Note'}
+                  </h4>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-mono text-xl font-black text-blue-600">
+                    {uploadProgress}%
+                  </span>
+                </div>
               </div>
-              <div className="w-full h-2.5 rounded-full bg-blue-100/80 overflow-hidden p-0.5 border border-blue-200">
+
+              {/* Animated Progress Bar */}
+              <div
+                className="w-full h-3 rounded-full bg-blue-100/90 overflow-hidden p-0.5 border border-blue-200"
+                role="progressbar"
+                aria-valuenow={uploadProgress}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Upload Progress"
+              >
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 transition-all duration-300 shadow-sm"
+                  className="h-full rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 transition-all duration-300 ease-out shadow-xs"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
+
               <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
-                <span>Fast TLS 1.3 Ephemeral Stream</span>
-                <span>{uploadProgress < 100 ? 'Processing...' : 'Completed'}</span>
+                <span>{progressStatus}</span>
+                <span>{uploadProgress < 100 ? 'Processing...' : 'Complete ✓'}</span>
               </div>
             </div>
           )}
@@ -998,16 +1153,23 @@ export function ShareCreator() {
             type="submit"
             variant="glow"
             size="lg"
-            shakeOnHover={true}
             shimmer={true}
-            className="w-full text-base py-4"
+            className="w-full text-base py-4 font-semibold shadow-lg shadow-blue-500/25"
             isLoading={isSubmitting}
             leftIcon={<KeyRound className="w-5 h-5 text-white" />}
           >
-            {isSubmitting ? 'Creating Ephemeral Share...' : 'Generate 6-Digit Code'}
+            {isSubmitting ? 'Uploading...' : 'Generate 6-Digit Code'}
           </Button>
         </form>
       </Card>
+
+      {/* SECURITY / TRUST MICROCOPY */}
+      <div className="text-center pt-2">
+        <p className="text-xs text-slate-500 font-medium flex items-center justify-center gap-2">
+          <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
+          <span>Free to use • No login required • Auto-expires securely</span>
+        </p>
+      </div>
 
       {/* Result Modal */}
       {resultData && (
