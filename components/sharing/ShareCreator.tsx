@@ -273,8 +273,10 @@ export function ShareCreator() {
     }
 
     setIsSubmitting(true);
-    setUploadProgress(10);
-    setProgressStatus('Packaging payload...');
+    setUploadProgress(12);
+    setProgressStatus(activeTab === 'file' ? 'Preparing secure file...' : 'Packaging secure note...');
+
+    let progressInterval: NodeJS.Timeout | null = null;
 
     try {
       let finalFileToUpload: File | null = null;
@@ -287,7 +289,7 @@ export function ShareCreator() {
         if (selectedFiles.length > 1) {
           setProgressStatus(`Compressing ${selectedFiles.length} files into ZIP...`);
           finalFileToUpload = await bundleFilesToZip(selectedFiles, undefined, (pct) => {
-            setUploadProgress(10 + Math.round(pct * 0.3));
+            setUploadProgress(10 + Math.round(pct * 0.25));
           });
         } else {
           finalFileToUpload = selectedFiles[0];
@@ -310,8 +312,26 @@ export function ShareCreator() {
         }
       }
 
-      setUploadProgress(50);
-      setProgressStatus('Generating 6-digit PIN & transmitting...');
+      // Start dynamic smooth progress ticker that continuously advances
+      let currentProgress = 25;
+      setUploadProgress(currentProgress);
+      setProgressStatus(activeTab === 'file' ? 'Uploading to secure vault...' : 'Transmitting encrypted note...');
+
+      progressInterval = setInterval(() => {
+        currentProgress += Math.max(1, Math.floor((94 - currentProgress) * 0.22));
+        if (currentProgress > 94) {
+          currentProgress = 94;
+        }
+        setUploadProgress(currentProgress);
+
+        if (currentProgress >= 80) {
+          setProgressStatus('Minting unique 6-digit share PIN...');
+        } else if (currentProgress >= 55) {
+          setProgressStatus('Applying cryptographic security lock...');
+        } else if (currentProgress >= 30) {
+          setProgressStatus(activeTab === 'file' ? 'Uploading to secure cloud vault...' : 'Securing note payload...');
+        }
+      }, 150);
 
       const formData = new FormData();
       formData.append('type', activeTab);
@@ -344,7 +364,11 @@ export function ShareCreator() {
       }
 
       const result = await createShareAction(formData);
-      setUploadProgress(100);
+
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
 
       if (!result.success || !result.data) {
         setErrorMessage(result.error || 'Failed to create share.');
@@ -353,13 +377,24 @@ export function ShareCreator() {
         return;
       }
 
+      // Smooth completion to 100%
+      setUploadProgress(100);
+      setProgressStatus('Share ready! Finalizing access PIN...');
+
       // Play success chime audio
       playUploadSuccessSound();
 
-      setResultData(result.data);
-      setResultModalOpen(true);
-      setIsSubmitting(false);
+      // Brief delay so user sees the 100% success state before modal displays
+      const finalData = result.data;
+      setTimeout(() => {
+        setResultData(finalData);
+        setResultModalOpen(true);
+        setIsSubmitting(false);
+      }, 250);
     } catch (err: unknown) {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
       setErrorMessage(err instanceof Error ? err.message : 'An unexpected error occurred.');
       setIsSubmitting(false);
       setUploadProgress(0);

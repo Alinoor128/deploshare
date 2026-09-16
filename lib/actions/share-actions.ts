@@ -21,7 +21,7 @@ export interface CreateShareInput {
   allowDownload?: boolean;
 }
 
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { checkShareCreationRateLimit } from '@/lib/security/rate-limiter';
 
 /**
@@ -48,13 +48,21 @@ export async function createShareAction(
       };
     }
 
-    const supabaseServer = await createServerSupabase();
     const adminSupabase = createAdminClient();
 
-    // Check if user is logged in
-    const {
-      data: { user },
-    } = await supabaseServer.auth.getUser();
+    // Fast-path auth check: If no Supabase auth cookies are present, user is anonymous (0ms network round-trip)
+    let user: { id: string } | null = null;
+    try {
+      const cookieStore = await cookies();
+      const hasAuthCookies = cookieStore.getAll().some((c) => c.name.startsWith('sb-'));
+      if (hasAuthCookies) {
+        const supabaseServer = await createServerSupabase();
+        const { data: authData } = await supabaseServer.auth.getUser();
+        user = authData?.user || null;
+      }
+    } catch {
+      // Fallback to anonymous on any cookie read failure
+    }
 
     const type = (formData.get('type') as 'file' | 'text') || 'file';
     const title = (formData.get('title') as string) || null;
@@ -204,30 +212,51 @@ export async function createShareAction(
         };
       }
 
-      // Insert record in shares table
-      const { data: insertedShare, error: dbError } = await adminSupabase
-        .from('shares')
-        .insert({
-          id: shareId,
-          owner_id: user ? user.id : null,
-          share_code: shareCode,
-          title: title || fileName,
-          type: 'file',
-          storage_path: storagePath,
-          file_name: fileName,
-          file_size: fileSize,
-          mime_type: mimeType,
-          password_hash: passwordHash,
-          expires_at: expiresAt,
-          max_downloads: maxDownloads,
-          burn_after_download: burnAfterDownload,
-          allow_download: allowDownload,
-        })
-        .select()
-        .single();
+      // Insert record in shares table (with optimistic retry on unique PIN collision)
+      let insertedShare: { id: string } | null = null;
+      let finalShareCode = shareCode;
 
-      if (dbError) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data, error: dbError } = await adminSupabase
+          .from('shares')
+          .insert({
+            id: shareId,
+            owner_id: user ? user.id : null,
+            share_code: finalShareCode,
+            title: title || fileName,
+            type: 'file',
+            storage_path: storagePath,
+            file_name: fileName,
+            file_size: fileSize,
+            mime_type: mimeType,
+            password_hash: passwordHash,
+            expires_at: expiresAt,
+            max_downloads: maxDownloads,
+            burn_after_download: burnAfterDownload,
+            allow_download: allowDownload,
+          })
+          .select()
+          .single();
+
+        if (!dbError && data) {
+          insertedShare = data;
+          break;
+        }
+
+        // In the rare 0.001% collision event, generate a new code and retry
+        if (dbError && dbError.code === '23505') {
+          finalShareCode = await generateUniqueShareCode();
+          continue;
+        }
+
         console.error('DB share insertion error:', dbError);
+        return {
+          success: false,
+          error: 'Failed to create share record. Please try again.',
+        };
+      }
+
+      if (!insertedShare) {
         return {
           success: false,
           error: 'Failed to create share record. Please try again.',
@@ -237,7 +266,7 @@ export async function createShareAction(
       return {
         success: true,
         data: {
-          shareCode,
+          shareCode: finalShareCode,
           shareId: insertedShare.id,
           expiresAt,
         },
@@ -249,27 +278,46 @@ export async function createShareAction(
       }
 
       const shareId = crypto.randomUUID();
+      let insertedShare: { id: string } | null = null;
+      let finalShareCode = shareCode;
 
-      const { data: insertedShare, error: dbError } = await adminSupabase
-        .from('shares')
-        .insert({
-          id: shareId,
-          owner_id: user ? user.id : null,
-          share_code: shareCode,
-          title: title || 'Text Snippet',
-          type: 'text',
-          text_content: textContent,
-          password_hash: passwordHash,
-          expires_at: expiresAt,
-          max_downloads: maxDownloads,
-          burn_after_download: burnAfterDownload,
-          allow_download: true,
-        })
-        .select()
-        .single();
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data, error: dbError } = await adminSupabase
+          .from('shares')
+          .insert({
+            id: shareId,
+            owner_id: user ? user.id : null,
+            share_code: finalShareCode,
+            title: title || 'Text Snippet',
+            type: 'text',
+            text_content: textContent,
+            password_hash: passwordHash,
+            expires_at: expiresAt,
+            max_downloads: maxDownloads,
+            burn_after_download: burnAfterDownload,
+            allow_download: true,
+          })
+          .select()
+          .single();
 
-      if (dbError) {
+        if (!dbError && data) {
+          insertedShare = data;
+          break;
+        }
+
+        if (dbError && dbError.code === '23505') {
+          finalShareCode = await generateUniqueShareCode();
+          continue;
+        }
+
         console.error('DB text share insertion error:', dbError);
+        return {
+          success: false,
+          error: 'Failed to create text share record. Please try again.',
+        };
+      }
+
+      if (!insertedShare) {
         return {
           success: false,
           error: 'Failed to create text share record. Please try again.',
@@ -279,7 +327,7 @@ export async function createShareAction(
       return {
         success: true,
         data: {
-          shareCode,
+          shareCode: finalShareCode,
           shareId: insertedShare.id,
           expiresAt,
         },

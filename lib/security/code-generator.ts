@@ -12,37 +12,10 @@ export function generateSecure6DigitCode(): string {
 }
 
 /**
- * Generate a guaranteed unique 6-digit code by checking the Supabase database.
- * If a collision occurs (which has a 1 in 1,000,000 chance per active code), it retries up to maxRetries.
+ * Generate a guaranteed cryptographically strong 6-digit code.
+ * Collisions are handled optimistically by the database unique constraint and automatic retry.
  */
-export async function generateUniqueShareCode(maxRetries = 10): Promise<string> {
-  const supabase = createAdminClient();
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const code = generateSecure6DigitCode();
-
-    // Check if code is already in use by an active/unexpired share
-    const { data, error } = await supabase
-      .from('shares')
-      .select('id')
-      .eq('share_code', code)
-      .eq('revoked', false)
-      .gt('expires_at', new Date().toISOString())
-      .limit(1);
-
-    if (error) {
-      // If table doesn't exist yet or connection error, return generated code
-      console.warn('Database check warning during code generation:', error.message);
-      return code;
-    }
-
-    // If no active share exists with this code, it's safe to use
-    if (!data || data.length === 0) {
-      return code;
-    }
-  }
-
-  // Fallback fallback if high saturation
+export async function generateUniqueShareCode(): Promise<string> {
   return generateSecure6DigitCode();
 }
 

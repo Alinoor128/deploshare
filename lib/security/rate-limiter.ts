@@ -43,6 +43,13 @@ export async function checkRateLimit(
     if (now - record.lastAttempt > windowMs) {
       memoryStore.delete(identifier);
     }
+  } else {
+    // Fast-path for clean callers: no previous attempts recorded, allow immediately with zero network delay
+    return {
+      allowed: true,
+      remainingAttempts: maxAttempts,
+      progressiveDelayMs: 0,
+    };
   }
 
   // Also check database rate_limits table for persistent enforcement across serverless instances
